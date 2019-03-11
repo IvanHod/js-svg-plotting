@@ -6,6 +6,17 @@ function getMinOfArray(numArray) {
     return Math.min.apply(null, numArray);
 }
 
+function createText(props) {
+    let shape = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    for (let prop in props) {
+        if (prop !== 'val') {
+            shape.setAttributeNS(null, prop, props[prop]);
+        }
+    }
+    shape.appendChild(document.createTextNode(props['val']));
+    return shape
+}
+
 function createLine(props) {
     let shape = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     for (let prop in props) {
@@ -33,6 +44,7 @@ class ChartMain {
 
         this.drawAxis(data);
         this.drawLine(data.columns[0].slice(1), data.columns[1].slice(1));
+
     }
 
     drawAxis(data) {
@@ -44,6 +56,19 @@ class ChartMain {
             'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
         this.el.find('svg').append(shape);
 
+        let text = createText({x: 0, y: 0, 'val': 'J', 'font-size': '20', 'color': 'black'});
+        this.el.find('svg').append(text);
+        let lengthOfWord = this.format.length * text.getBBox().width;
+        text.remove();
+
+        // TODO create an axis class and all actions to do there
+        let numberWords = Math.round((this.width - lengthOfWord / 2) / (lengthOfWord)) / 2;
+        let startPos = lengthOfWord / 4;
+        for (let i = 0; i < numberWords; i++) {
+            let dateText = createText({x: startPos, y: this.height - 10, 'val': 'Jun 21', 'font-size': '18', 'color': 'gray'});
+            this.el.find('svg').append(dateText);
+            startPos += lengthOfWord * 2;
+        }
     }
 
     transformY(y) {
