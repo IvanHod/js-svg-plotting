@@ -8,6 +8,7 @@ div.chart div {
 
 div.chart .chart-navigation {
     position: relative;
+    margin-top: 20px;
 }
 
 div.chart .chart-navigation>svg, div {
@@ -31,3 +32,9 @@ div.chart div.navigation-border {
     height: 89%;
     cursor: pointer;
 }
+
+/*
+x = pixel
+diff =
+
+*/
