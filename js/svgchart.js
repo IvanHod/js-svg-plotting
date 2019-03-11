@@ -2,9 +2,56 @@ function getMaxOfArray(numArray) {
     return Math.max.apply(null, numArray);
 }
 
+function createLine(props) {
+    let shape = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    for (let prop in props) {
+        shape.setAttributeNS(null, prop, props[prop]);
+    };
+    return shape
+}
+
+function createPolyline(props) {
+    let shape = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    for (let prop in props) {
+        shape.setAttributeNS(null, prop, props[prop]);
+    }
+    return shape
+}
+
 class ChartMain {
     constructor(el, data) {
         this.el = el;
+        this.width = el.width();
+        this.height = this.width / 1.5;
+        el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
+
+        this.drawAxis(data);
+        this.drawLine(data.columns[0].slice(1), data.columns[1].slice(1));
+    }
+
+    drawAxis(data) {
+        let shape = createLine({'x1': 0, 'y1': this.height, 'x2': this.width, 'y2': this.height, 'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
+        this.el.find('svg').append(shape);
+    }
+
+    transformY(y) {
+        let maxY = getMaxOfArray(y), height = this.height;
+        return y.map(function (yn) {return (yn * height) / maxY})
+    }
+
+    drawLine(x, y) {
+        let width = this.width;
+        let newY = this.transformY(y);
+
+        let step = width / x.length;
+        let currentX = 0;
+        let points = '';
+        x.forEach(function (xn, i) {
+            points += currentX + ',' + newY[i] + ' ';
+            currentX += step;
+        });
+        let shape = createPolyline({'points': points, 'fill': 'none', 'stroke': 'blue', 'stroke-width': '1'});
+        this.el.find('svg').append(shape);
     }
 }
 
@@ -69,11 +116,7 @@ class ChartNavigation {
             points += currentX + ',' + newY[i] + ' ';
             currentX += step;
         });
-        let shape = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        shape.setAttributeNS(null, "points", points);
-        shape.setAttributeNS(null, "fill", "none");
-        shape.setAttributeNS(null, "stroke", "blue");
-        shape.setAttributeNS(null, "stroke-width", "1");
+        let shape = createPolyline({'points': points, 'fill': 'none', 'stroke': 'blue', 'stroke-width': '1'});
         this.el.find('svg').append(shape);
     }
 }
@@ -82,7 +125,7 @@ class Chart {
     constructor(el, width, data) {
         this.el = el;
         this.width = width;
-        this.chart = new ChartMain(el.find('div.chart-main'), data);
         this.navigation = new ChartNavigation(el.find('div.chart-navigation'), data);
+        this.chart = new ChartMain(el.find('div.chart-main'), data);
     }
 }

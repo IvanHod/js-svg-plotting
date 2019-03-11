@@ -1,20 +1,20 @@
-#chart {
+div.chart {
     width: 600px;
 }
 
-#chart div {
+div.chart div {
     width: 100%;
 }
 
-.chart-navigation {
+div.chart .chart-navigation {
     position: relative;
 }
 
-.chart-navigation>svg, div {
+div.chart .chart-navigation>svg, div {
     float: left;
 }
 
-.navigation-blackout {
+div.chart .navigation-blackout {
     border: 0 solid rgba(0, 0, 0, 0.15);
     position: absolute;
     width: 100%;
@@ -22,7 +22,7 @@
     cursor: pointer;
 }
 
-#chart div.navigation-border {
+div.chart div.navigation-border {
     border: 5px solid rgba(0, 0, 0, 0.3);
     border-left: 10px solid rgba(0, 0, 0, 0.3);
     border-right: 10px solid rgba(0, 0, 0, 0.3);
