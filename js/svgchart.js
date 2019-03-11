@@ -2,11 +2,15 @@ function getMaxOfArray(numArray) {
     return Math.max.apply(null, numArray);
 }
 
+function getMinOfArray(numArray) {
+    return Math.min.apply(null, numArray);
+}
+
 function createLine(props) {
     let shape = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     for (let prop in props) {
         shape.setAttributeNS(null, prop, props[prop]);
-    };
+    }
     return shape
 }
 
@@ -23,6 +27,8 @@ class ChartMain {
         this.el = el;
         this.width = el.width();
         this.height = this.width / 1.5;
+        this.format = 'MMM DD';
+        this.paddingBottom = 40;
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
 
         this.drawAxis(data);
@@ -30,13 +36,21 @@ class ChartMain {
     }
 
     drawAxis(data) {
-        let shape = createLine({'x1': 0, 'y1': this.height, 'x2': this.width, 'y2': this.height, 'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
+        let shape = createLine({
+            'x1': 0,
+            'y1': this.height - this.paddingBottom,
+            'x2': this.width,
+            'y2': this.height - this.paddingBottom,
+            'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
         this.el.find('svg').append(shape);
+
     }
 
     transformY(y) {
-        let maxY = getMaxOfArray(y), height = this.height;
-        return y.map(function (yn) {return (yn * height) / maxY})
+        let paddingBottom = this.paddingBottom;
+        let maxY = getMaxOfArray(y), minY = getMinOfArray(y);
+        let height = this.height - paddingBottom;
+        return y.map(function (yn) {return ((yn - minY) / (maxY - minY)) * height})
     }
 
     drawLine(x, y) {
