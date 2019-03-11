@@ -6,6 +6,18 @@ function getMinOfArray(numArray) {
     return Math.min.apply(null, numArray);
 }
 
+function quantile(array, percentile) {
+    array.sort(function (a, b) {return b - a});
+    let index = percentile * (array.length - 1);
+
+    if (Number.isInteger(index)) {
+        return array[index];
+    }
+
+    let i = Math.floor(index), fraction = index - i;
+    return Math.round(array[i] + (array[i + 1] - array[i]) * fraction);
+}
+
 function createText(props) {
     let shape = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     for (let prop in props) {
@@ -33,17 +45,77 @@ function createPolyline(props) {
     return shape
 }
 
-class XAxis {
-    constructor(svg, x, color='gray') {
+class Axis {
+    constructor(svg, data, color='gray', fontSize='18px') {
         this.svg = svg;
-        this.x = x;
+        this.data = data;
         this.width = $(svg).width();
         this.height = $(svg).height();
-        this.format = 'MMM DD';
-        this.fontSize = '18px';
+        this.fontSize = fontSize;
         this.paddingBottom = 20;
         this.color = color;
+        this.format = '';
 
+        this.detectLetterWidth();
+    }
+
+    drawHorizontalLine(x1, y1, x2, y2) {
+        let shape = createLine({
+            'x1': x1,
+            'y1': y1,
+            'x2': x2,
+            'y2': y2,
+            'fill': 'none', 'stroke': this.color, 'stroke-width': '1'});
+        $(this.svg).append(shape);
+    }
+
+    detectLetterWidth() {
+        let text = createText({x: 0, y: 0, 'val': 'J', 'font-size': '20', 'color': 'black'});
+        $(this.svg).append(text);
+        this.heightOfLetter = text.getBBox().height;
+        this.widthOfLetter = text.getBBox().width;
+        text.remove();
+    }
+
+    appendLabel(x, y, val) {
+        let dateText = createText({x: x, y: y, 'val': val, 'font-size': this.fontSize, 'fill': this.color});
+        $(this.svg).append(dateText);
+    }
+}
+
+class YAxis extends Axis {
+    constructor(svg, y, color='gray') {
+        super(svg, y, color);
+
+        this.draw();
+    }
+
+    getValue(pixel) {
+        let percentile = (pixel - 0) / (this.height - this.paddingBottom);
+        return quantile(this.data, percentile);
+    }
+
+    draw() {
+        let height = this.height - this.paddingBottom; // TODO offset from bottom line (now 19px)
+        let numberOfLabels = 4;
+        let padding = (height - numberOfLabels * this.heightOfLetter) / (numberOfLabels - 1);
+        let startPos = height;
+
+        for (let i = 0; i < numberOfLabels; i++) {
+            if (i > 0) {
+                this.drawHorizontalLine(0, startPos, this.width, startPos);
+            }
+            this.appendLabel(10, startPos - 10, this.getValue(startPos));
+            startPos -= this.heightOfLetter + padding;
+        }
+    }
+}
+
+class XAxis extends Axis {
+    constructor(svg, x, color='gray') {
+        super(svg, x, color);
+
+        this.format = 'MMM DD';
         let shape = createLine({
             'x1': 0,
             'y1': this.height - this.paddingBottom,
@@ -52,49 +124,36 @@ class XAxis {
             'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
         this.svg.append(shape);
 
-        this.detectLetterWidth();
         this.draw();
     }
 
-    detectLetterWidth() {
-        let text = createText({x: 0, y: 0, 'val': 'J', 'font-size': '20', 'color': 'black'});
-        $(this.svg).append(text);
-        this.widthOfLetter = this.format.length * text.getBBox().width;
-        text.remove();
-    }
-
     getDateByIndex(index) {
-        return moment(this.x[index]).format('MMM d');
+        return moment(this.data[index]).format('MMM d');
     }
 
     getDateByPixel(pixel) {
-        let minX = getMinOfArray(this.x), maxX = getMaxOfArray(this.x);
-        let index = Math.round(((pixel - minX) / (maxX - minX)) * pixel);
-        return moment(this.x[index]).format('MMM d');
+        let percentile = (pixel - 0) / (this.width);
+        return moment(quantile(this.data, percentile)).format('MMM D');
     }
 
     draw() {
-        let y = this.height, startPos = this.widthOfLetter / 4;
+        let widthOfWord = this.widthOfLetter * this.format.length;
+        let y = this.height, startPos = widthOfWord / 4;
         let lastPos = this.width - startPos;
 
-        let numberWords = Math.ceil(((lastPos - startPos) / this.widthOfLetter) / 2);
-        let padding = (lastPos - startPos - this.widthOfLetter * numberWords) / (numberWords - 1);
+        let numberWords = Math.ceil(((lastPos - startPos) / widthOfWord) / 2);
+        let padding = (lastPos - startPos - widthOfWord * numberWords) / (numberWords - 1);
 
         for (let i = 0; i < numberWords; i++) {
             let date = '';
             if (i === 0 || i === numberWords - 1) {
-                date = this.getDateByIndex(i === 0 ? 0 : this.x[this.x.length - 1]);
+                date = this.getDateByIndex(i === 0 ? 0 : this.data[this.data.length - 1]);
             } else {
                 date = this.getDateByPixel(startPos);
             }
             this.appendLabel(startPos, y, date);
-            startPos += this.widthOfLetter + padding;
+            startPos += widthOfWord + padding;
         }
-    }
-
-    appendLabel(x, y, val) {
-        let dateText = createText({x: x, y: y, 'val': val, 'font-size': this.fontSize, 'fill': this.color});
-        $(this.svg).append(dateText);
     }
 }
 
@@ -108,6 +167,8 @@ class ChartMain {
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
 
         this.xaxis = new XAxis(el.find('svg'), data.columns[0].slice(1));
+        this.yaxis = new YAxis(el.find('svg'), data.columns[1].slice(1));
+
         this.drawLine(data.columns[0].slice(1), data.columns[1].slice(1));
 
     }
