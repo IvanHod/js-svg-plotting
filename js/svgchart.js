@@ -12,32 +12,44 @@ class ChartNavigation {
     constructor(el, data) {
         this.el = el;
         this.width = el.width();
-        this.height = 100;
-        this.dragging_offset = 0;
+        this.height = 90;
+        this.left_border_dragging = 0;
+        this.right_border_dragging = 0;
         this.initEvents();
-        el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart"></svg>');
+        el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="navigation"></svg>');
 
         this.drawLine(data.columns[0].slice(1), data.columns[1].slice(1))
     }
 
     initEvents() {
+        let chart = this;
         this.el.on('mousedown', '.navigation-border', function (e) {
-            // console.log('Mouse move!', e.offsetX, e.pageX);
-            if (e.offsetX <= 0 || e.offsetX > $(this).width()) {
-                this.dragging_offset = e.offsetX * -1;
-            }
-        }).on('mousemove', '.navigation-border', function (e) {
-            if (this.dragging_offset > 0) {
-                console.log('Mouse move!', e.pageX, e.pageX - 8, e.pageX - 8, this.dragging_offset);
-                // if (e.offsetX > 0) {
-                $(this).parent().css({'border-left': (e.pageX - 13) + 'px solid rgba(0, 0, 0, 0.15)'});
-                $(this).css({'width': ($(this).parent().width() - (e.pageX + 8)) + 'px'});
-                // }
+            if (e.offsetX <= 0) {
+                chart.left_border_dragging = true;
+            } else if (e.offsetX > $(this).width()) {
+                chart.right_border_dragging = true;
             }
         }).on('mouseup', '.navigation-border', function (e) {
-            // if (e.offsetX <= 0 || e.offsetX > $(this).width()) {
-                this.dragging_offset = 0;
-            // }
+            chart.left_border_dragging = false;
+            chart.right_border_dragging = false;
+        });
+
+        this.el.on('mousemove', '.navigation-blackout', function (e) {
+            let offsetLeft = parseFloat($(this).css('border-left-width'));
+            let offsetRight = parseFloat($(this).css('border-right-width'));
+            let border = parseFloat($(this).children().css('border-left-width'));
+            let offsetX = e.pageX - 8;
+            if (chart.left_border_dragging && offsetX >= border / 2 && offsetX < chart.width - border * 1.5) {
+                $(this).children().css({'width': (chart.width - e.pageX + 8 - border * 1.5 - offsetRight) + 'px'});
+                $(this).css({'border-left': (offsetX - border / 2) + 'px solid rgba(0, 0, 0, 0.15)'});
+                $(this).css({'width': (chart.width - e.pageX + 8 + border / 2 - offsetRight) + 'px'});
+            }
+            else if (chart.right_border_dragging && offsetX <= chart.width - border / 2) {
+                let frameWidth = e.pageX - border * 1.5 - offsetLeft - 8;
+                $(this).children().css({'width': frameWidth + 'px'});
+                $(this).css({'width': (frameWidth + border * 2) + 'px'});
+                $(this).css({'border-right': (chart.width - frameWidth - offsetLeft - border * 2) + 'px solid rgba(0, 0, 0, 0.15)'});
+            }
         });
     }
 
