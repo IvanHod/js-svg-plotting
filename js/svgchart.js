@@ -98,7 +98,7 @@ class YAxis extends Axis {
     }
 
     draw() {
-        let height = this.height - this.paddingBottom / 2; // TODO offset from bottom line (now 19px)
+        let height = this.height - this.paddingBottom / 2;
         let numberOfLabels = 4;
         let padding = (height - numberOfLabels * this.heightOfLetter) / (numberOfLabels - 1);
         let startPos = height;
@@ -196,6 +196,22 @@ class ChartMain {
             currentX += step;
         });
         let shape = createPolyline({'points': points, 'fill': 'none', 'stroke': 'blue', 'stroke-width': '1'});
+
+        var animation = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+        animation.setAttributeNS(null, 'attributeName', 'transform');
+        animation.setAttributeNS(null, 'attributeType', 'XML');
+        animation.setAttributeNS(null, 'type', 'translate');
+
+        animation.setAttributeNS(null, 'from', '0 0');
+        animation.setAttributeNS(null, 'to', '100 0');
+        animation.setAttributeNS(null, 'fill', 'freeze');
+
+        animation.setAttributeNS(null, 'values', '0; 100;');
+
+        animation.setAttributeNS(null, 'dur', '1s');
+
+        shape.appendChild(animation);
+        animation.beginElement();
         this.el.find('svg').append(shape);
     }
 }
@@ -235,12 +251,14 @@ class ChartNavigation {
                 $(this).children().css({'width': (chart.width - e.pageX + 8 - border * 1.5 - offsetRight) + 'px'});
                 $(this).css({'border-left': (offsetX - border / 2) + 'px solid rgba(0, 0, 0, 0.15)'});
                 $(this).css({'width': (chart.width - e.pageX + 8 + border / 2 - offsetRight) + 'px'});
+                console.log(123);
             }
             else if (chart.right_border_dragging && offsetX <= chart.width - border / 2) {
                 let frameWidth = e.pageX - border * 1.5 - offsetLeft - 8;
                 $(this).children().css({'width': frameWidth + 'px'});
                 $(this).css({'width': (frameWidth + border * 2) + 'px'});
                 $(this).css({'border-right': (chart.width - frameWidth - offsetLeft - border * 2) + 'px solid rgba(0, 0, 0, 0.15)'});
+                console.log(456);
             }
         });
     }
