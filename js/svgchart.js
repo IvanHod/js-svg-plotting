@@ -52,7 +52,7 @@ class Axis {
         this.width = $(svg).width();
         this.height = $(svg).height();
         this.fontSize = fontSize;
-        this.paddingBottom = 20;
+        this.paddingBottom = 40;
         this.color = color;
         this.format = '';
 
@@ -91,12 +91,14 @@ class YAxis extends Axis {
     }
 
     getValue(pixel) {
-        let percentile = (pixel - 0) / (this.height - this.paddingBottom);
-        return quantile(this.data, percentile);
+        let invertPixel = this.height - this.paddingBottom - pixel;
+        let percentile = invertPixel / (this.height - this.paddingBottom);
+        let minVal = getMinOfArray(this.data), maxVal = getMaxOfArray(this.data);
+        return Math.round(minVal + (maxVal - minVal) * percentile);
     }
 
     draw() {
-        let height = this.height - this.paddingBottom; // TODO offset from bottom line (now 19px)
+        let height = this.height - this.paddingBottom / 2; // TODO offset from bottom line (now 19px)
         let numberOfLabels = 4;
         let padding = (height - numberOfLabels * this.heightOfLetter) / (numberOfLabels - 1);
         let startPos = height;
@@ -118,9 +120,9 @@ class XAxis extends Axis {
         this.format = 'MMM DD';
         let shape = createLine({
             'x1': 0,
-            'y1': this.height - this.paddingBottom,
+            'y1': this.height - this.paddingBottom / 2,
             'x2': this.width,
-            'y2': this.height - this.paddingBottom,
+            'y2': this.height - this.paddingBottom / 2,
             'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
         this.svg.append(shape);
 
@@ -132,8 +134,10 @@ class XAxis extends Axis {
     }
 
     getDateByPixel(pixel) {
-        let percentile = (pixel - 0) / (this.width);
-        return moment(quantile(this.data, percentile)).format('MMM D');
+        let percentile = (pixel - 0) / (this.width - 0);
+        let minVal = getMinOfArray(this.data), maxVal = getMaxOfArray(this.data);
+        let timestamp = Math.round(minVal + (maxVal - minVal) * percentile);
+        return moment(timestamp).format('MMM D');
     }
 
     draw() {
@@ -163,7 +167,7 @@ class ChartMain {
         this.width = el.width();
         this.height = this.width / 2;
         this.format = 'MMM DD';
-        this.paddingBottom = 20;
+        this.paddingBottom = 40;
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
 
         this.xaxis = new XAxis(el.find('svg'), data.columns[0].slice(1));
