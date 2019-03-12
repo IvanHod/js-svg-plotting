@@ -27,7 +27,7 @@ function createLine(props) {
 
 function createPolyline(props) {
     let g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g.append(createTransform('translate', '0 0', '-50 0'));
+    g.append(createTransform('translate', '0', '0'));
 
     let shape = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     shape.append(createTransform('scale', '1 1', '1.6 1'));
@@ -50,7 +50,6 @@ function createTransform(type, from, to, fill='freeze') {
     animate.setAttributeNS(null, 'to', to);
     animate.setAttributeNS(null, 'fill', fill);
 
-    // animate.setAttributeNS(null, 'repeatCount', '0');
     animate.setAttributeNS(null, 'begin', 'indefinite');
     animate.setAttributeNS(null, 'dur', '1s');
     return animate
@@ -151,6 +150,13 @@ class XAxis extends Axis {
         return moment(timestamp).format('MMM D');
     }
 
+    getPixelByTimestamp(timestamp) {
+        let minVal = getMinOfArray(this.data), maxVal = getMaxOfArray(this.data);
+        let percentile = (timestamp - minVal) / (maxVal - minVal);
+        return this.width * percentile;
+
+    }
+
     draw() {
         let widthOfWord = this.widthOfLetter * this.format.length;
         let y = this.height, startPos = widthOfWord / 4;
@@ -185,7 +191,6 @@ class ChartMain {
         this.yaxis = new YAxis(el.find('svg'), data.columns[1].slice(1));
 
         this.drawLine(data.columns[0].slice(1), data.columns[1].slice(1));
-
     }
 
     transformY(y) {
@@ -210,11 +215,22 @@ class ChartMain {
         let shape = createPolyline({'points': points, 'fill': 'none', 'stroke': 'blue', 'stroke-width': '1'});
         this.el.find('svg').append(shape);
     }
+
+    moveLeft(timestamp) {
+        let pixel = this.xaxis.getPixelByTimestamp(timestamp);
+
+        let moving = $(this.el).find('svg polyline').prev()[0];
+        console.log(moving.getAttributeNodeNS(null, 'to').value);
+        moving.setAttributeNS(null, 'from', moving.getAttributeNodeNS(null, 'to').value);
+        moving.setAttributeNS(null, 'to', -pixel);
+        moving.beginElement();
+    }
 }
 
 class ChartNavigation {
     constructor(el, data) {
         this.el = el;
+        this.x = data.columns[0].slice(1);
         this.width = el.width();
         this.height = 90;
         this.left_border_dragging = 0;
@@ -222,7 +238,10 @@ class ChartNavigation {
         this.initEvents();
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="navigation"></svg>');
 
-        this.drawLine(data.columns[0].slice(1), data.columns[1].slice(1))
+        this.drawLine(data.columns[0].slice(1), data.columns[1].slice(1));
+
+        this.eventLeftBorderWasMoved = [];
+        this.eventRightBorderWasMoved = [];
     }
 
     initEvents() {
@@ -236,6 +255,8 @@ class ChartNavigation {
         }).on('mouseup', '.navigation-border', function (e) {
             chart.left_border_dragging = false;
             chart.right_border_dragging = false;
+
+            chart.leftBorderWasMoved(e.pageX - 8 - (parseFloat($(this).css('border-left-width')) / 2));
         });
 
         this.el.on('mousemove', '.navigation-blackout', function (e) {
@@ -247,15 +268,43 @@ class ChartNavigation {
                 $(this).children().css({'width': (chart.width - e.pageX + 8 - border * 1.5 - offsetRight) + 'px'});
                 $(this).css({'border-left': (offsetX - border / 2) + 'px solid rgba(0, 0, 0, 0.15)'});
                 $(this).css({'width': (chart.width - e.pageX + 8 + border / 2 - offsetRight) + 'px'});
-                console.log(123);
+
+                // chart.leftBorderWasMoved(offsetX - border / 2);
             }
             else if (chart.right_border_dragging && offsetX <= chart.width - border / 2) {
                 let frameWidth = e.pageX - border * 1.5 - offsetLeft - 8;
                 $(this).children().css({'width': frameWidth + 'px'});
                 $(this).css({'width': (frameWidth + border * 2) + 'px'});
                 $(this).css({'border-right': (chart.width - frameWidth - offsetLeft - border * 2) + 'px solid rgba(0, 0, 0, 0.15)'});
-                console.log(456);
+
+                chart.rightBorderWasMoved(offsetX + border / 2);
             }
+        });
+    }
+
+    leftBorderWasMoved(pixel) {
+        let percentile = (pixel - 0) / (this.width - 0);
+
+        let minVal = getMinOfArray(this.x), maxVal = getMaxOfArray(this.x);
+        let timestamp = Math.round(minVal + (maxVal - minVal) * percentile);
+
+        this.eventLeftBorderWasMoved.forEach(function (func, i) {
+            func(timestamp);
+        });
+    }
+
+    onLeftBorderWasMoved(_class, func) {
+        this.eventLeftBorderWasMoved.push(func.bind(_class));
+    }
+
+    rightBorderWasMoved(pixel) {
+        let percentile = (pixel - 0) / (this.width - 0);
+
+        let minVal = getMinOfArray(this.x), maxVal = getMaxOfArray(this.x);
+        let timestamp = Math.round(minVal + (maxVal - minVal) * percentile);
+
+        this.eventRightBorderWasMoved.forEach(function (func, i) {
+            func(timestamp);
         });
     }
 
@@ -286,5 +335,6 @@ class Chart {
         this.width = width;
         this.navigation = new ChartNavigation(el.find('div.chart-navigation'), data);
         this.chart = new ChartMain(el.find('div.chart-main'), data);
+        this.navigation.onLeftBorderWasMoved(this.chart, this.chart.moveLeft)
     }
 }
