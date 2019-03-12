@@ -197,21 +197,39 @@ class ChartMain {
         });
         let shape = createPolyline({'points': points, 'fill': 'none', 'stroke': 'blue', 'stroke-width': '1'});
 
-        var animation = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
-        animation.setAttributeNS(null, 'attributeName', 'transform');
-        animation.setAttributeNS(null, 'attributeType', 'XML');
-        animation.setAttributeNS(null, 'type', 'translate');
+        let translate = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+        translate.setAttributeNS(null, 'attributeName', 'transform');
+        translate.setAttributeNS(null, 'attributeType', 'XML');
+        translate.setAttributeNS(null, 'type', 'translate');
 
-        animation.setAttributeNS(null, 'from', '0 0');
-        animation.setAttributeNS(null, 'to', '100 0');
-        animation.setAttributeNS(null, 'fill', 'freeze');
+        translate.setAttributeNS(null, 'from', '0 0');
+        translate.setAttributeNS(null, 'to', '-100 0');
+        translate.setAttributeNS(null, 'fill', 'freeze');
 
-        animation.setAttributeNS(null, 'values', '0; 100;');
+        translate.setAttributeNS(null, 'repeatCount', '0');
+        translate.setAttributeNS(null, 'begin', '0s');
+        translate.setAttributeNS(null, 'dur', '1s');
 
-        animation.setAttributeNS(null, 'dur', '1s');
+        let scale = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform'); // использовать к g
+        scale.setAttributeNS(null, 'attributeName', 'transform');
+        scale.setAttributeNS(null, 'attributeType', 'XML');
+        scale.setAttributeNS(null, 'type', 'scale');
 
-        shape.appendChild(animation);
-        animation.beginElement();
+        scale.setAttributeNS(null, 'from', '1 1');
+        scale.setAttributeNS(null, 'to', '1.1 1');
+        scale.setAttributeNS(null, 'fill', 'freeze');
+
+        scale.setAttributeNS(null, 'begin', '0s');
+        scale.setAttributeNS(null, 'dur', '1s');
+
+        shape.appendChild(translate);
+        shape.appendChild(scale);
+
+        translate.beginElement();
+        setTimeout(function () {
+            scale.beginElement();
+        }, 2000);
+
         this.el.find('svg').append(shape);
     }
 }
