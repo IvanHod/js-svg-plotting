@@ -6,18 +6,6 @@ function getMinOfArray(numArray) {
     return Math.min.apply(null, numArray);
 }
 
-function quantile(array, percentile) {
-    array.sort(function (a, b) {return b - a});
-    let index = percentile * (array.length - 1);
-
-    if (Number.isInteger(index)) {
-        return array[index];
-    }
-
-    let i = Math.floor(index), fraction = index - i;
-    return Math.round(array[i] + (array[i + 1] - array[i]) * fraction);
-}
-
 function createText(props) {
     let shape = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     for (let prop in props) {
@@ -38,11 +26,34 @@ function createLine(props) {
 }
 
 function createPolyline(props) {
+    let g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.append(createTransform('translate', '0 0', '-50 0'));
+
     let shape = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    shape.append(createTransform('scale', '1 1', '1.6 1'));
+
     for (let prop in props) {
         shape.setAttributeNS(null, prop, props[prop]);
     }
-    return shape
+
+    g.append(shape);
+    return g
+}
+
+function createTransform(type, from, to, fill='freeze') {
+    let animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+    animate.setAttributeNS(null, 'attributeName', 'transform');
+    animate.setAttributeNS(null, 'attributeType', 'XML');
+    animate.setAttributeNS(null, 'type', type);
+
+    animate.setAttributeNS(null, 'from', from);
+    animate.setAttributeNS(null, 'to', to);
+    animate.setAttributeNS(null, 'fill', fill);
+
+    // animate.setAttributeNS(null, 'repeatCount', '0');
+    animate.setAttributeNS(null, 'begin', 'indefinite');
+    animate.setAttributeNS(null, 'dur', '1s');
+    return animate
 }
 
 class Axis {
@@ -195,41 +206,8 @@ class ChartMain {
             points += currentX + ',' + newY[i] + ' ';
             currentX += step;
         });
+
         let shape = createPolyline({'points': points, 'fill': 'none', 'stroke': 'blue', 'stroke-width': '1'});
-
-        let translate = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
-        translate.setAttributeNS(null, 'attributeName', 'transform');
-        translate.setAttributeNS(null, 'attributeType', 'XML');
-        translate.setAttributeNS(null, 'type', 'translate');
-
-        translate.setAttributeNS(null, 'from', '0 0');
-        translate.setAttributeNS(null, 'to', '-100 0');
-        translate.setAttributeNS(null, 'fill', 'freeze');
-
-        translate.setAttributeNS(null, 'repeatCount', '0');
-        translate.setAttributeNS(null, 'begin', '0s');
-        translate.setAttributeNS(null, 'dur', '1s');
-
-        let scale = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform'); // использовать к g
-        scale.setAttributeNS(null, 'attributeName', 'transform');
-        scale.setAttributeNS(null, 'attributeType', 'XML');
-        scale.setAttributeNS(null, 'type', 'scale');
-
-        scale.setAttributeNS(null, 'from', '1 1');
-        scale.setAttributeNS(null, 'to', '1.1 1');
-        scale.setAttributeNS(null, 'fill', 'freeze');
-
-        scale.setAttributeNS(null, 'begin', '0s');
-        scale.setAttributeNS(null, 'dur', '1s');
-
-        shape.appendChild(translate);
-        shape.appendChild(scale);
-
-        translate.beginElement();
-        setTimeout(function () {
-            scale.beginElement();
-        }, 2000);
-
         this.el.find('svg').append(shape);
     }
 }
