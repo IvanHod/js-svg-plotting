@@ -181,34 +181,58 @@ class XAxis extends Axis {
 class ChartMain {
     constructor(el, data) {
         this.el = el;
+        this.x = data.columns[0].slice(1);
         this.width = el.width();
         this.height = this.width / 2;
         this.format = 'MMM DD';
         this.paddingBottom = 40;
+        this.min = Number.POSITIVE_INFINITY;
+        this.max = Number.NEGATIVE_INFINITY;
+        this.formData(data.columns.slice(1));
+        this.detectMinMax();
+
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
 
         this.xaxis = new XAxis(el.find('svg'), data.columns[0].slice(1));
         this.yaxis = new YAxis(el.find('svg'), data.columns[1].slice(1));
 
-        this.drawLine(data.columns[0].slice(1), data.columns[1].slice(1));
+        this.drawLines()
     }
 
-    transformY(y) {
-        let paddingBottom = this.paddingBottom;
-        let maxY = getMaxOfArray(y), minY = getMinOfArray(y);
-        let height = this.height - paddingBottom;
-        return y.map(function (yn) {return ((yn - minY) / (maxY - minY)) * height})
+    formData(data) {
+        let newData = [], currentData = [];
+        data.forEach(function (list) {
+            newData.push(list.slice(1));
+            currentData.push(list.slice(1))
+        });
+        this.data = newData;
+        this.currentData = currentData;
     }
 
-    drawLine(x, y) {
-        let width = this.width;
-        let newY = this.transformY(y);
+    detectMinMax() {
+        let min = this.min, max = this.max;
+        this.currentData.forEach(function (list) {
+            min = Math.min(min, getMinOfArray(list));
+            max = Math.max(max, getMaxOfArray(list));
+        });
+        let isChange = min !== this.min && max !== this.max;
+        this.min = min;
+        this.max = max;
+        return isChange
+    }
 
-        let step = width / x.length;
-        let currentX = 0;
-        let points = '';
+    transform_value(yn) {
+        let minY = this.min, maxY = this.max;
+        let height = this.height - this.paddingBottom;
+        return height - ((yn - minY) / (maxY - minY)) * height
+    }
+
+    drawLine(x, y, start_index=0, end_index=null) {
+        let obj = this, points = '';
+        let step = this.width / (end_index - start_index), currentX = 0;
+
         x.forEach(function (xn, i) {
-            points += currentX + ',' + newY[i] + ' ';
+            points += currentX + ',' + obj.transform_value(y[i]) + ' ';
             currentX += step;
         });
 
@@ -216,21 +240,29 @@ class ChartMain {
         this.el.find('svg').append(shape);
     }
 
+    drawLines(start_index=0, end_index=null) {
+        if (!end_index) {
+            end_index = this.x.length;
+        }
+
+        this.drawLine(this.x, this.currentData[0], start_index, end_index);
+        // this.drawLine(this.x, this.currentData[1], start_index, end_index);
+    }
+
     moveLeft(timestamp) {
         let pixel = this.xaxis.getPixelByTimestamp(timestamp);
 
-        let moving = $(this.el).find('svg polyline').prev()[0];
-        console.log(moving.getAttributeNodeNS(null, 'to').value);
-        moving.setAttributeNS(null, 'from', moving.getAttributeNodeNS(null, 'to').value);
-        moving.setAttributeNS(null, 'to', -pixel);
-        moving.beginElement();
+        let polyline = $(this.el).find('svg polyline')[0]; // transform="translate(30) rotate(45 50 50)"
+        let scale = (this.width / (this.width - pixel));
+        console.log(-pixel, scale);
+        polyline.setAttributeNS(null, 'transform', `translate(${-pixel}) scale(${scale} 1)`);
     }
 }
 
 class ChartNavigation {
-    constructor(el, data) {
+    constructor(el, x, data) {
         this.el = el;
-        this.x = data.columns[0].slice(1);
+        this.x = x;
         this.width = el.width();
         this.height = 90;
         this.left_border_dragging = 0;
@@ -238,7 +270,7 @@ class ChartNavigation {
         this.initEvents();
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="navigation"></svg>');
 
-        this.drawLine(data.columns[0].slice(1), data.columns[1].slice(1));
+        this.drawLine(x, data[0]);
 
         this.eventLeftBorderWasMoved = [];
         this.eventRightBorderWasMoved = [];
@@ -255,8 +287,6 @@ class ChartNavigation {
         }).on('mouseup', '.navigation-border', function (e) {
             chart.left_border_dragging = false;
             chart.right_border_dragging = false;
-
-            chart.leftBorderWasMoved(e.pageX - 8 - (parseFloat($(this).css('border-left-width')) / 2));
         });
 
         this.el.on('mousemove', '.navigation-blackout', function (e) {
@@ -269,7 +299,7 @@ class ChartNavigation {
                 $(this).css({'border-left': (offsetX - border / 2) + 'px solid rgba(0, 0, 0, 0.15)'});
                 $(this).css({'width': (chart.width - e.pageX + 8 + border / 2 - offsetRight) + 'px'});
 
-                // chart.leftBorderWasMoved(offsetX - border / 2);
+                chart.leftBorderWasMoved(offsetX - border / 2);
             }
             else if (chart.right_border_dragging && offsetX <= chart.width - border / 2) {
                 let frameWidth = e.pageX - border * 1.5 - offsetLeft - 8;
@@ -310,7 +340,7 @@ class ChartNavigation {
 
     transformY(y) {
         let maxY = getMaxOfArray(y), height = this.height;
-        return y.map(function (yn) {return (yn * height) / maxY})
+        return y.map(function (yn) {return height - (yn * height) / maxY})
     }
 
     drawLine(x, y) {
@@ -333,8 +363,8 @@ class Chart {
     constructor(el, width, data) {
         this.el = el;
         this.width = width;
-        this.navigation = new ChartNavigation(el.find('div.chart-navigation'), data);
         this.chart = new ChartMain(el.find('div.chart-main'), data);
+        this.navigation = new ChartNavigation(el.find('div.chart-navigation'), this.chart.x, this.chart.data);
         this.navigation.onLeftBorderWasMoved(this.chart, this.chart.moveLeft)
     }
 }
