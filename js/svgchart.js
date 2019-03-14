@@ -135,8 +135,6 @@ class XAxis extends Axis {
             'y2': this.height - this.paddingBottom / 2,
             'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
         this.svg.append(shape);
-
-        this.draw();
     }
 
     getDateByIndex(index) {
@@ -256,10 +254,17 @@ class ChartMain {
         this.maxX = this.x[end_index];
 
         this.drawLine(this.x, this.currentData[0], start_index, end_index);
+
+        this.xaxis.draw();
+        this.yaxis.draw();
     }
 
-    moveLeft(timestamp, index) {
-        this.drawLines(index);
+    moveLeft(start_index, end_index) {
+        this.drawLines(start_index, end_index);
+    }
+
+    moveRight(start_index, end_index) {
+        this.drawLines(start_index, end_index);
     }
 }
 
@@ -267,6 +272,8 @@ class ChartNavigation {
     constructor(el, x, data) {
         this.el = el;
         this.x = x;
+        this.left_index = 0;
+        this.right_index = x.length - 1;
         this.width = el.width();
         this.height = 90;
         this.left_border_dragging = 0;
@@ -317,31 +324,32 @@ class ChartNavigation {
     }
 
     leftBorderWasMoved(pixel) {
-        let percentile = (pixel - 0) / (this.width - 0);
+        let percentile = (pixel - 0) / (this.width - 0), obj = this;
 
         let minVal = getMinOfArray(this.x), maxVal = getMaxOfArray(this.x);
         let timestamp = Math.round(minVal + (maxVal - minVal) * percentile), index = 0;
         while (timestamp > this.x[index]) {
             index += 1;
         }
+        this.left_index = index;
 
         this.eventLeftBorderWasMoved.forEach(function (func, i) {
-            func(timestamp, index);
+            func(index, obj.right_index);
         });
     }
 
-    onLeftBorderWasMoved(_class, func) {
-        this.eventLeftBorderWasMoved.push(func.bind(_class));
-    }
-
     rightBorderWasMoved(pixel) {
-        let percentile = (pixel - 0) / (this.width - 0);
+        let percentile = (pixel - 0) / (this.width - 0), obj = this;
 
         let minVal = getMinOfArray(this.x), maxVal = getMaxOfArray(this.x);
-        let timestamp = Math.round(minVal + (maxVal - minVal) * percentile);
+        let timestamp = Math.round(minVal + (maxVal - minVal) * percentile), index = this.x.length - 1;
+        while (timestamp < this.x[index]) {
+            index -= 1;
+        }
+        this.right_index = index;
 
         this.eventRightBorderWasMoved.forEach(function (func, i) {
-            func(timestamp);
+            func(obj.left_index, index);
         });
     }
 
@@ -372,6 +380,15 @@ class Chart {
         this.chart = new ChartMain(el.find('div.chart-main'), data);
         this.navigation = new ChartNavigation(el.find('div.chart-navigation'), this.chart.x, this.chart.data);
 
-        this.navigation.onLeftBorderWasMoved(this.chart, this.chart.moveLeft)
+        this.onLeftBorderWasMoved(this.chart, this.chart.moveLeft)
+        this.onRightBorderWasMoved(this.chart, this.chart.moveRight)
+    }
+
+    onLeftBorderWasMoved(_class, func) {
+        this.navigation.eventLeftBorderWasMoved.push(func.bind(_class));
+    }
+
+    onRightBorderWasMoved(_class, func) {
+        this.navigation.eventRightBorderWasMoved.push(func.bind(_class));
     }
 }
