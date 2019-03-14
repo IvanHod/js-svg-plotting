@@ -227,12 +227,16 @@ class ChartMain {
         return height - ((yn - minY) / (maxY - minY)) * height
     }
 
+    transform_date(xn) {
+        return ((xn - this.minX) / (this.maxX - this.minX)) * this.width
+    }
+
     drawLine(x, y, start_index=0, end_index=null) {
         let obj = this, points = '', length = end_index - start_index;
         let step = this.width / length, currentX = 0;
 
-        for (let i = start_index; i < end_index; i++) {
-            points += currentX + ',' + obj.transform_value(y[i]) + ' ';
+        for (let i = start_index; i <= end_index; i++) {
+            points += this.transform_date(this.x[i]) + ',' + obj.transform_value(y[i]) + ' ';
             currentX += step;
         }
         let polyline = $(this.el).find('polyline').parent();
@@ -245,21 +249,17 @@ class ChartMain {
 
     drawLines(start_index=0, end_index=null) {
         if (!end_index) {
-            end_index = this.x.length;
+            end_index = this.x.length - 1;
         }
 
+        this.minX = this.x[start_index];
+        this.maxX = this.x[end_index];
+
         this.drawLine(this.x, this.currentData[0], start_index, end_index);
-        // this.drawLine(this.x, this.currentData[1], start_index, end_index);
     }
 
     moveLeft(timestamp, index) {
         this.drawLines(index);
-        // let pixel = this.xaxis.getPixelByTimestamp(timestamp);
-        //
-        // let polyline = $(this.el).find('svg polyline')[0]; // transform="translate(30) rotate(45 50 50)"
-        // let scale = (this.width / (this.width - pixel));
-        // console.log(-pixel, scale);
-        // polyline.setAttributeNS(null, 'transform', `translate(${-pixel}) scale(${scale} 1)`);
     }
 }
 
