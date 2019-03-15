@@ -27,10 +27,7 @@ function createLine(props) {
 
 function createPolyline(props) {
     let g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g.append(createTransform('translate', '0', '0'));
-
     let shape = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    shape.append(createTransform('scale', '1 1', '1.6 1'));
 
     for (let prop in props) {
         shape.setAttributeNS(null, prop, props[prop]);
@@ -87,9 +84,9 @@ class Axis {
         text.remove();
     }
 
-    appendLabel(x, y, val) {
+    appendLabel(x, y, g, val) {
         let dateText = createText({x: x, y: y, 'val': val, 'font-size': this.fontSize, 'fill': this.color});
-        $(this.svg).append(dateText);
+        g.append(dateText);
     }
 }
 
@@ -113,13 +110,19 @@ class YAxis extends Axis {
         let padding = (height - numberOfLabels * this.heightOfLetter) / (numberOfLabels - 1);
         let startPos = height;
 
+        let group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         for (let i = 0; i < numberOfLabels; i++) {
             if (i > 0) {
                 this.drawHorizontalLine(0, startPos, this.width, startPos);
             }
-            this.appendLabel(10, startPos - 10, this.getValue(startPos));
+            this.appendLabel(10, startPos - 10, group, this.getValue(startPos));
             startPos -= this.heightOfLetter + padding;
         }
+        $(this.svg).append(group);
+    }
+
+    redraw() {
+
     }
 }
 
@@ -135,44 +138,61 @@ class XAxis extends Axis {
             'y2': this.height - this.paddingBottom / 2,
             'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
         this.svg.append(shape);
+
+        this.draw();
     }
 
     getDateByIndex(index) {
-        return moment(this.data[index]).format('MMM d');
+        return moment(this.data[index]).format(this.format);
     }
 
-    getDateByPixel(pixel) {
+    getDateByPixel(pixel, start_index = 0) {
+        let minVal = this.data[start_index], maxVal = this.data[this.data.length - 1];
         let percentile = (pixel - 0) / (this.width - 0);
-        let minVal = getMinOfArray(this.data), maxVal = getMaxOfArray(this.data);
         let timestamp = Math.round(minVal + (maxVal - minVal) * percentile);
-        return moment(timestamp).format('MMM D');
+        return moment(timestamp).format(this.format);
     }
 
     getPixelByTimestamp(timestamp) {
-        let minVal = getMinOfArray(this.data), maxVal = getMaxOfArray(this.data);
+        let minVal = this.data[0], maxVal = this.data[this.data.length - 1];
         let percentile = (timestamp - minVal) / (maxVal - minVal);
         return this.width * percentile;
 
     }
 
-    draw() {
+    draw(min_index, max_index) {
         let widthOfWord = this.widthOfLetter * this.format.length;
-        let y = this.height, startPos = widthOfWord / 4;
+        let startPos = widthOfWord / 4;
         let lastPos = this.width - startPos;
 
         let numberWords = Math.ceil(((lastPos - startPos) / widthOfWord) / 2);
         let padding = (lastPos - startPos - widthOfWord * numberWords) / (numberWords - 1);
 
+        let group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttributeNS(null, 'class', 'xaxis');
+
         for (let i = 0; i < numberWords; i++) {
-            let date = '';
-            if (i === 0 || i === numberWords - 1) {
-                date = this.getDateByIndex(i === 0 ? 0 : this.data[this.data.length - 1]);
-            } else {
-                date = this.getDateByPixel(startPos);
-            }
-            this.appendLabel(startPos, y, date);
+            let date = this.getDateByPixel(startPos + widthOfWord / 2);
+            this.appendLabel(startPos, this.height, group, date);
             startPos += widthOfWord + padding;
         }
+        $(this.svg).append(group);
+    }
+
+    redraw(min_index, max_index) {
+        let axis = this, widthOfWord = this.widthOfLetter * this.format.length;
+
+        let points = $(this.svg).find('polyline')[0].getAttributeNS(null, 'points').split(' ').slice(0, 2);
+        let fullWidth = (parseFloat(points[1].split(',')[0]) - parseFloat(points[0].split(',')[0])) * (this.data.length - 1);
+
+        $(this.svg).find('g.xaxis')[0].childNodes.forEach(function (textElement, i) {
+            let currentPixel = axis.width - parseFloat(textElement.getAttributeNS(null, 'x'));
+            let newPixel = (currentPixel * fullWidth) / axis.width;
+            if (i === 0) {
+                console.log(currentPixel, 'new x:', newPixel);
+            }
+            textElement.setAttributeNS(null, 'transform', 'translate(' + (currentPixel - newPixel) + ')');
+        });
     }
 }
 
@@ -255,8 +275,8 @@ class ChartMain {
 
         this.drawLine(this.x, this.currentData[0], start_index, end_index);
 
-        this.xaxis.draw();
-        this.yaxis.draw();
+        this.xaxis.redraw(start_index, end_index);
+        this.yaxis.redraw();
     }
 
     moveLeft(start_index, end_index) {
