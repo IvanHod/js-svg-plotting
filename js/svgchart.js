@@ -52,6 +52,14 @@ function createTransform(type, from, to, fill='freeze') {
     return animate
 }
 
+function createGroup(props) {
+    let shape = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    for (let prop in props) {
+        shape.setAttributeNS(null, prop, props[prop]);
+    }
+    return shape
+}
+
 class Axis {
     constructor(svg, data, color='gray', fontSize='18px') {
         this.svg = svg;
@@ -222,6 +230,10 @@ class ChartMain {
         this.yaxis = new YAxis(svg, data.columns[1].slice(1));
 
         this.drawLines();
+    }
+
+    helpWindow() {
+        $('<div>', {'class': 'helping-block', 'css': {'display': 'none', width: ''}})
     }
 
     mouseMoving(e) {
