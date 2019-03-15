@@ -146,10 +146,15 @@ class XAxis extends Axis {
         return moment(this.data[index]).format(this.format);
     }
 
-    getDateByPixel(pixel, start_index = 0) {
-        let minVal = this.data[start_index], maxVal = this.data[this.data.length - 1];
+    getDateByPixel(pixel, start_index = 0, end_index = -1) {
+        if (end_index === -1) {
+            end_index = this.data.length - 1
+        }
+        let minVal = this.data[start_index], maxVal = this.data[end_index];
+
         let percentile = (pixel - 0) / (this.width - 0);
         let timestamp = Math.round(minVal + (maxVal - minVal) * percentile);
+
         return moment(timestamp).format(this.format);
     }
 
@@ -186,11 +191,8 @@ class XAxis extends Axis {
         let fullWidth = (parseFloat(points[1].split(',')[0]) - parseFloat(points[0].split(',')[0])) * (this.data.length - 1);
 
         $(this.svg).find('g.xaxis')[0].childNodes.forEach(function (textElement, i) {
-            let currentPixel = axis.width - parseFloat(textElement.getAttributeNS(null, 'x'));
+            let currentPixel = (axis.width - widthOfWord / 2) - parseFloat(textElement.getAttributeNS(null, 'x'));
             let newPixel = (currentPixel * fullWidth) / axis.width;
-            if (i === 0) {
-                console.log(currentPixel, 'new x:', newPixel);
-            }
             textElement.setAttributeNS(null, 'transform', 'translate(' + (currentPixel - newPixel) + ')');
         });
     }
@@ -204,17 +206,27 @@ class ChartMain {
         this.height = this.width / 2;
         this.format = 'MMM DD';
         this.paddingBottom = 40;
+        this.minIndex = 0;
+        this.maxIndex = this.x.length - 1;
         this.min = Number.POSITIVE_INFINITY;
         this.max = Number.NEGATIVE_INFINITY;
         this.formData(data.columns.slice(1));
         this.detectMinMax();
 
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
+        let svg = el.find('svg');
 
-        this.xaxis = new XAxis(el.find('svg'), data.columns[0].slice(1));
-        this.yaxis = new YAxis(el.find('svg'), data.columns[1].slice(1));
+        svg.on('mousemove', this.mouseMoving.bind(this)); // mousedown, mouseup, mouseleave
+
+        this.xaxis = new XAxis(svg, data.columns[0].slice(1));
+        this.yaxis = new YAxis(svg, data.columns[1].slice(1));
 
         this.drawLines();
+    }
+
+    mouseMoving(e) {
+        let pixel = e.offsetX;
+        console.log(this.xaxis.getDateByPixel(pixel, this.minIndex, this.maxIndex));
     }
 
     formData(data) {
@@ -269,6 +281,9 @@ class ChartMain {
         if (!end_index) {
             end_index = this.x.length - 1;
         }
+
+        this.minIndex = start_index;
+        this.maxIndex = end_index;
 
         this.minX = this.x[start_index];
         this.maxX = this.x[end_index];
