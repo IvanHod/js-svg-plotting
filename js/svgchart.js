@@ -202,8 +202,13 @@ class XAxis extends Axis {
     }
 
     static getMovingCoordinate(elem) {
-        return parseFloat(elem.getAttributeNS(null, 'x')) +
-            parseFloat(elem.getAttributeNS(null, 'transform').replace('translate(', '').replace(')', ''));
+        let x = parseFloat(elem.getAttributeNS(null, 'x'));
+        let transform = elem.getAttributeNS(null, 'transform');
+
+        if (transform) {
+            transform = parseFloat(transform.replace('translate(', '').replace(')', ''))
+        }
+        return x + (transform ? transform : 0);
     }
 
     redraw(min_index, max_index) {
@@ -213,12 +218,13 @@ class XAxis extends Axis {
         let fullWidth = (parseFloat(points[1].split(',')[0]) - parseFloat(points[0].split(',')[0])) * (this.data.length - 1);
 
         let labels = $(this.svg).find('g.xaxis')[0].childNodes;
-        labels.forEach(function (textElement, i) {
+        labels.forEach(function (textElement) {
             let currentPixel = (axis.width - widthOfWord / 2) - parseFloat(textElement.getAttributeNS(null, 'x'));
             let newPixel = (currentPixel * fullWidth) / axis.width;
             textElement.setAttributeNS(null, 'transform', 'translate(' + (currentPixel - newPixel) + ')');
         });
 
+        labels = $(this.svg).find('g.xaxis .level-0');
         let firstX = XAxis.getMovingCoordinate(labels[0]), secondX = XAxis.getMovingCoordinate(labels[1]);
         let opacity = (secondX - firstX - widthOfWord - this.labelsDistance) / this.labelsDistance;
 
@@ -251,14 +257,15 @@ class XAxis extends Axis {
         let g = $(this.svg).find('g.xaxis'), widthOfWord = this.widthOfLetter * this.format.length;
         let labels = $(this.svg).find('g.xaxis .level-' + this.level);
         if (!labels.length) {
-            let prevLabels = $(this.svg).find('g.xaxis .level-' + (this.level - 1));
-            for (let i = 0; i < prevLabels.length - 1; i++) {
+            let prevLabels = $(this.svg).find('g.xaxis text');
+            let n = prevLabels.length - 1;
+            for (let i = 0; i < n; i++) {
                 let currentEndPos = XAxis.getMovingCoordinate(prevLabels[i]) + widthOfWord;
                 let nextStartPos = XAxis.getMovingCoordinate(prevLabels[i + 1]);
 
                 let newStartPos = currentEndPos + (nextStartPos - currentEndPos - widthOfWord) / 2;
                 let date = this.getDateByPixel(currentEndPos + (nextStartPos - currentEndPos) / 2);
-                this.appendLabel(newStartPos, this.height, g, date, {'class': 'level-' + this.level, 'opacity': opacity});
+                this.appendLabel(newStartPos, this.height, g, date, {'class': 'level-' + this.level, 'opacity': opacity}, prevLabels[i]);
             }
         }
     }
