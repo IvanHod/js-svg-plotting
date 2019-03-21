@@ -189,7 +189,6 @@ class XAxis extends Axis {
 
         let numberWords = Math.ceil(((lastPos - startPos) / widthOfWord) / 2);
         let padding = (lastPos - startPos - widthOfWord * numberWords) / (numberWords - 1);
-        this.labelsDistance = padding;
 
         let group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         group.setAttributeNS(null, 'class', 'xaxis');
@@ -213,17 +212,20 @@ class XAxis extends Axis {
         return x + (isTransform && transform ? transform : 0) + width;
     }
 
-    redraw(min_index, max_index) {
-        let axis = this, widthOfWord = this.widthOfLetter * this.format.length;
+    redraw(isLeftMoving) {
+        let axis = this, sign = isLeftMoving ? 1 : -1;
 
         let points = $(this.svg).find('polyline')[0].getAttributeNS(null, 'points').split(' ').slice(0, 2);
         let fullWidth = (parseFloat(points[1].split(',')[0]) - parseFloat(points[0].split(',')[0])) * (this.data.length - 1);
 
         let labels = $(this.svg).find('g.xaxis')[0].childNodes;
         labels.forEach(function (textElement) {
-            let currentPixel = axis.width - parseFloat(textElement.getAttributeNS(null, 'x'));
+            let currentPixel = parseFloat(textElement.getAttributeNS(null, 'x'));
+            if (isLeftMoving) {
+                currentPixel = axis.width - currentPixel;
+            }
             let newPixel = (currentPixel * fullWidth) / axis.width;
-            textElement.setAttributeNS(null, 'transform', 'translate(' + (currentPixel - newPixel) + ')');
+            textElement.setAttributeNS(null, 'transform', 'translate(' + ((currentPixel - newPixel) * sign) + ')');
         });
 
         this.updateOpacity(labels);
@@ -372,12 +374,15 @@ class ChartMain {
     moveLeft(start_index, end_index) {
         this.drawLines(start_index, end_index);
 
-        this.xaxis.redraw(start_index, end_index);
+        this.xaxis.redraw(true);
         this.yaxis.redraw();
     }
 
     moveRight(start_index, end_index) {
         this.drawLines(start_index, end_index);
+
+        this.xaxis.redraw(false);
+        this.yaxis.redraw();
     }
 }
 
