@@ -226,34 +226,29 @@ class XAxis extends Axis {
             textElement.setAttributeNS(null, 'transform', 'translate(' + (currentPixel - newPixel) + ')');
         });
 
-        labels = $(this.svg).find('g.xaxis .level-0');
-        let firstX = XAxis.getMovingCoordinate(labels[0]), secondX = XAxis.getMovingCoordinate(labels[1]);
-        let opacity = (secondX - firstX - widthOfWord - this.labelsDistance) / this.labelsDistance;
-
-        this.updateOpacity(opacity);
+        this.updateOpacity(labels);
     }
 
-    updateOpacity(opacity) {
-        let level = Math.ceil(opacity / this.level);
-        console.log(level, this.level, opacity)
-        if (level > 1) {
+    updateOpacity(labels) {
+        let firstX = XAxis.getMovingCoordinate(labels[0], true, false),
+            secondX = XAxis.getMovingCoordinate(labels[1], true),
+            thirdX = XAxis.getMovingCoordinate(labels[2], true);
+        let distance = XAxis.getMovingCoordinate(labels[0], false, false) - XAxis.getMovingCoordinate(labels[0], false, true);
+
+        let opacity = (((thirdX - firstX) / distance) - 1) * 4;
+        if (opacity > 2 && ((secondX - firstX) / distance) >= 1) {
+            this.appendNextLevel(0);
             this.level += 1;
-        } else {
-            this.level = Math.max(1, this.level - 1);
-        }
-        opacity = opacity - (this.level - 1);
-        if (opacity > 0) {
-            if (opacity < 0.1) {
-                opacity = 0;
-            }
-            let labels = $(this.svg).find('g.xaxis .level-' + this.level);
-            if (!labels.length) {
-                this.appendNextLevel(opacity);
-            }
+        } else if (opacity < 0) {
+            $(this.svg).find('g.xaxis .level-' + (this.level - 1)).remove();
+            this.level -= 1;
+        } else if (opacity > 0) {
+            let labels = $(this.svg).find('g.xaxis .level-' + (this.level - 1));
             labels.each(function (i, elem) {
                 elem.setAttributeNS(null, 'opacity', opacity);
             })
         }
+
     }
 
     appendNextLevel(opacity) {
@@ -372,13 +367,13 @@ class ChartMain {
         this.maxX = this.x[end_index];
 
         this.drawLine(this.x, this.currentData[0], start_index, end_index);
-
-        this.xaxis.redraw(start_index, end_index);
-        this.yaxis.redraw();
     }
 
     moveLeft(start_index, end_index) {
         this.drawLines(start_index, end_index);
+
+        this.xaxis.redraw(start_index, end_index);
+        this.yaxis.redraw();
     }
 
     moveRight(start_index, end_index) {
