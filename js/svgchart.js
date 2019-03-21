@@ -25,16 +25,18 @@ function createLine(props) {
     return shape
 }
 
-function createPolyline(props) {
-    let g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+function createPolyline(group, props) {
+    if (!group) {
+        group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    }
     let shape = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
 
     for (let prop in props) {
         shape.setAttributeNS(null, prop, props[prop]);
     }
 
-    g.append(shape);
-    return g
+    group.append(shape);
+    return shape
 }
 
 function createTransform(type, from, to, fill='freeze') {
@@ -58,6 +60,18 @@ function createGroup(props) {
         shape.setAttributeNS(null, prop, props[prop]);
     }
     return shape
+}
+
+class ColorGenerator {
+    constructor() {
+        this.defaultColors = ['green', 'red', 'blue', 'orange', 'yellow'];
+        this.currentIndex = 0;
+    }
+
+    getNextColor() {
+        this.currentIndex += 1;
+        return this.defaultColors[this.currentIndex - 1];
+    }
 }
 
 class Axis {
@@ -286,18 +300,22 @@ class ChartMain {
         this.maxIndex = this.x.length - 1;
         this.min = Number.POSITIVE_INFINITY;
         this.max = Number.NEGATIVE_INFINITY;
+        this.colorGenerator = new ColorGenerator();
         this.formData(data.columns.slice(1));
         this.detectMinMax();
 
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
         let svg = el.find('svg');
 
+        this.g = createGroup({'class': 'plot-lines'});
+        svg.append(this.g);
+
         svg.on('mousemove', this.mouseMoving.bind(this)); // mousedown, mouseup, mouseleave
 
         this.xaxis = new XAxis(svg, data.columns[0].slice(1));
         this.yaxis = new YAxis(svg, data.columns[1].slice(1));
 
-        this.drawLines();
+        this.drawLines(0, null, true);
     }
 
     helpWindow() {
@@ -341,23 +359,26 @@ class ChartMain {
         return ((xn - this.minX) / (this.maxX - this.minX)) * this.width
     }
 
-    drawLine(x, y, start_index=0, end_index=null) {
-        let obj = this, points = '', length = end_index - start_index;
-        let step = this.width / length, currentX = 0;
+    drawLine(x, y, id, start_index=0, end_index=null) {
+        let obj = this, points = '';
+
 
         for (let i = start_index; i <= end_index; i++) {
             points += this.transform_date(this.x[i]) + ',' + obj.transform_value(y[i]) + ' ';
-            currentX += step;
         }
-        let polyline = $(this.el).find('polyline').parent();
+        let props = {'points': points, 'fill': 'none', 'id': id, 'stroke-width': '1'};
+
+        let polyline = $(this.g).find('>#' + id)[0];
         if (polyline) {
+            props['stroke'] = polyline.getAttributeNS(null, 'stroke');
             polyline.remove()
+        } else {
+            props['stroke'] = this.colorGenerator.getNextColor();
         }
-        let shape = createPolyline({'points': points, 'fill': 'none', 'stroke': 'blue', 'stroke-width': '1'});
-        this.el.find('svg').append(shape);
+        createPolyline(this.g, props);
     }
 
-    drawLines(start_index=0, end_index=null) {
+    drawLines(start_index=0, end_index=null, isNewLines=false) {
         if (!end_index) {
             end_index = this.x.length - 1;
         }
@@ -368,7 +389,9 @@ class ChartMain {
         this.minX = this.x[start_index];
         this.maxX = this.x[end_index];
 
-        this.drawLine(this.x, this.currentData[0], start_index, end_index);
+        for (let i = 0; i < this.currentData.length; i ++) {
+            this.drawLine(this.x, this.currentData[i], 'line-' + i, start_index, end_index, isNewLines);
+        }
     }
 
     moveLeft(start_index, end_index) {
@@ -387,19 +410,26 @@ class ChartMain {
 }
 
 class ChartNavigation {
-    constructor(el, x, data) {
+    constructor(el, x, data, minValue, maxValue) {
         this.el = el;
         this.x = x;
+        this.minValue = minValue;
+        this.maxValue = maxValue;
         this.left_index = 0;
         this.right_index = x.length - 1;
         this.width = el.width();
         this.height = 90;
         this.left_border_dragging = 0;
         this.right_border_dragging = 0;
+        this.colorGenerator = new ColorGenerator();
         this.initEvents();
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="navigation"></svg>');
 
+        this.g = createGroup({'class': 'plot-navigation-lines'});
+        el.find('svg').append(this.g);
+
         this.drawLine(data[0]);
+        this.drawLine(data[1]);
 
         this.eventLeftBorderWasMoved = [];
         this.eventRightBorderWasMoved = [];
@@ -471,22 +501,24 @@ class ChartNavigation {
         });
     }
 
-    transformY(y) {
-        let maxY = getMaxOfArray(y), height = this.height;
-        return y.map(function (yn) {return height - (yn * height) / maxY})
+    transform_value(yn) {
+        let minY = this.minValue, maxY = this.maxValue;
+        return this.height - ((yn - minY) / (maxY - minY)) * this.height
+    }
+
+    transform_date(xn) {
+        return ((xn - this.x[0]) / (this.x[this.x.length - 1] - this.x[0])) * this.width
     }
 
     drawLine(y) {
-        let newY = this.transformY(y);
+        let navigator = this;
 
-        let step = this.width / this.x.length, currentX = 0;
         let points = ' ';
         this.x.forEach(function (xn, i) {
-            points += currentX + ',' + newY[i] + ' ';
-            currentX += step;
+            points += navigator.transform_date(navigator.x[i]) + ',' + navigator.transform_value(y[i]) + ' ';
         });
-        let shape = createPolyline({'points': points, 'fill': 'none', 'stroke': 'blue', 'stroke-width': '1'});
-        this.el.find('svg').append(shape);
+
+        createPolyline(this.g, {'points': points, 'fill': 'none', 'stroke': this.colorGenerator.getNextColor(), 'stroke-width': '1'});
     }
 }
 
@@ -496,10 +528,10 @@ class Chart {
         this.width = width;
 
         this.chart = new ChartMain(el.find('div.chart-main'), data);
-        this.navigation = new ChartNavigation(el.find('div.chart-navigation'), this.chart.x, this.chart.data);
+        this.navigation = new ChartNavigation(el.find('div.chart-navigation'), this.chart.x, this.chart.data, this.chart.min, this.chart.max);
 
-        this.onLeftBorderWasMoved(this.chart, this.chart.moveLeft)
-        this.onRightBorderWasMoved(this.chart, this.chart.moveRight)
+        this.onLeftBorderWasMoved(this.chart, this.chart.moveLeft);
+        this.onRightBorderWasMoved(this.chart, this.chart.moveRight);
     }
 
     onLeftBorderWasMoved(_class, func) {
