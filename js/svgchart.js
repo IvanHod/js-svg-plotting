@@ -162,6 +162,8 @@ class XAxis extends Axis {
 
         this.format = 'MMM DD';
         this.level = 1;
+        this.left_offset = 0;
+        this.right_offset = 0;
         let shape = createLine({
             'x1': 0,
             'y1': this.height - this.paddingBottom / 2,
@@ -226,20 +228,25 @@ class XAxis extends Axis {
         return x + (isTransform && transform ? transform : 0) + width;
     }
 
-    redraw(isLeftMoving) {
-        let axis = this, sign = isLeftMoving ? 1 : -1;
+    redraw(start_index, end_index) {
+        let axis = this;
 
         let points = $(this.svg).find('polyline')[0].getAttributeNS(null, 'points').split(' ').slice(0, 2);
-        let fullWidth = (parseFloat(points[1].split(',')[0]) - parseFloat(points[0].split(',')[0])) * (this.data.length - 1);
+
+
+        let delta = parseFloat(points[1].split(',')[0]) - parseFloat(points[0].split(',')[0]);
+        let leftWidth = delta * end_index;
+        let rightWidth = delta * (this.data.length - 1 - start_index);
 
         let labels = $(this.svg).find('g.xaxis')[0].childNodes;
-        labels.forEach(function (textElement) {
-            let currentPixel = parseFloat(textElement.getAttributeNS(null, 'x'));
-            if (isLeftMoving) {
-                currentPixel = axis.width - currentPixel;
-            }
-            let newPixel = (currentPixel * fullWidth) / axis.width;
-            textElement.setAttributeNS(null, 'transform', 'translate(' + ((currentPixel - newPixel) * sign) + ')');
+        labels.forEach(function (textElement, i) {
+            let currentPixel = axis.width - XAxis.getMovingCoordinate(textElement, false);
+            let leftOffset = currentPixel - ((currentPixel * leftWidth) / axis.width);
+
+            currentPixel = XAxis.getMovingCoordinate(textElement, false);
+            let rightOffset = currentPixel - (currentPixel * rightWidth) / axis.width;
+
+            textElement.setAttributeNS(null, 'transform', 'translate(' + (leftOffset - rightOffset) + ')'); //
         });
 
         this.updateOpacity(labels);
@@ -397,14 +404,14 @@ class ChartMain {
     moveLeft(start_index, end_index) {
         this.drawLines(start_index, end_index);
 
-        this.xaxis.redraw(true);
+        this.xaxis.redraw(start_index, end_index);
         this.yaxis.redraw();
     }
 
     moveRight(start_index, end_index) {
         this.drawLines(start_index, end_index);
 
-        this.xaxis.redraw(false);
+        this.xaxis.redraw(start_index, end_index);
         this.yaxis.redraw();
     }
 }
