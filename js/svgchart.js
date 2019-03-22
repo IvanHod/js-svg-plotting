@@ -233,7 +233,6 @@ class XAxis extends Axis {
 
         let points = $(this.svg).find('polyline')[0].getAttributeNS(null, 'points').split(' ').slice(0, 2);
 
-
         let delta = parseFloat(points[1].split(',')[0]) - parseFloat(points[0].split(',')[0]);
         let leftWidth = delta * end_index;
         let rightWidth = delta * (this.data.length - 1 - start_index);
@@ -308,7 +307,7 @@ class ChartMain {
         this.min = Number.POSITIVE_INFINITY;
         this.max = Number.NEGATIVE_INFINITY;
         this.colorGenerator = new ColorGenerator();
-        this.formData(data.columns.slice(1));
+        this.formData(data);
         this.detectMinMax();
 
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
@@ -335,21 +334,30 @@ class ChartMain {
     }
 
     formData(data) {
-        let newData = [], currentData = [];
-        data.forEach(function (list) {
-            newData.push(list.slice(1));
-            currentData.push(list.slice(1))
-        });
-        this.data = newData;
-        this.currentData = currentData;
+        this.data = {};
+        this.visible = {};
+        this.colors = data.colors;
+
+        for (let i = 0; i < data.columns.length; i++) {
+            let id = data.columns[i][0];
+            if (data.types[id] === 'line') {
+                this.data[id] = data.columns[i].slice(1);
+                this.visible[id] = true;
+                if (!this.colors[id]) {
+                    this.colors[id] = this.colorGenerator.getNextColor();
+                }
+            }
+        }
     }
 
     detectMinMax() {
         let min = this.min, max = this.max;
-        this.currentData.forEach(function (list) {
-            min = Math.min(min, getMinOfArray(list));
-            max = Math.max(max, getMaxOfArray(list));
-        });
+        for (let id in this.data) {
+            if (this.visible[id]) {
+                min = Math.min(min, getMinOfArray(this.data[id]));
+                max = Math.max(max, getMaxOfArray(this.data[id]));
+            }
+        }
         let isChange = min !== this.min && max !== this.max;
         this.min = min;
         this.max = max;
@@ -366,23 +374,23 @@ class ChartMain {
         return ((xn - this.minX) / (this.maxX - this.minX)) * this.width
     }
 
-    drawLine(x, y, id, start_index=0, end_index=null) {
-        let obj = this, points = '';
+    drawLine(id, start_index=0, end_index=null) {
+        let obj = this;
 
-
+        let y = this.data[id], points = '';
         for (let i = start_index; i <= end_index; i++) {
             points += this.transform_date(this.x[i]) + ',' + obj.transform_value(y[i]) + ' ';
         }
-        let props = {'points': points, 'fill': 'none', 'id': id, 'stroke-width': '1'};
+        let props = {'points': points, 'fill': 'none', 'id': 'chart-line-' + id, 'stroke-width': '1', 'stroke': this.colors[id]};
 
-        let polyline = $(this.g).find('>#' + id)[0];
+        let polyline = $(this.g).find('>#chart-line-' + id)[0];
         if (polyline) {
-            props['stroke'] = polyline.getAttributeNS(null, 'stroke');
             polyline.remove()
-        } else {
-            props['stroke'] = this.colorGenerator.getNextColor();
         }
-        createPolyline(this.g, props);
+
+        if (this.visible[id]) {
+            createPolyline(this.g, props);
+        }
     }
 
     drawLines(start_index=0, end_index=null, isNewLines=false) {
@@ -396,8 +404,8 @@ class ChartMain {
         this.minX = this.x[start_index];
         this.maxX = this.x[end_index];
 
-        for (let i = 0; i < this.currentData.length; i ++) {
-            this.drawLine(this.x, this.currentData[i], 'line-' + i, start_index, end_index, isNewLines);
+        for (let id in this.data) {
+            this.drawLine(id, start_index, end_index, isNewLines);
         }
     }
 
@@ -413,6 +421,12 @@ class ChartMain {
 
         this.xaxis.redraw(start_index, end_index);
         this.yaxis.redraw();
+    }
+
+    changeVisible(lineId, isVisible) {
+        this.visible[lineId] = isVisible;
+
+        this.drawLines(this.minIndex, this.maxIndex);
     }
 }
 
@@ -435,8 +449,7 @@ class ChartNavigation {
         this.g = createGroup({'class': 'plot-navigation-lines'});
         el.find('svg').append(this.g);
 
-        this.drawLine(data[0]);
-        this.drawLine(data[1]);
+        this.drawLines(data);
 
         this.eventLeftBorderWasMoved = [];
         this.eventRightBorderWasMoved = [];
@@ -517,39 +530,96 @@ class ChartNavigation {
         return ((xn - this.x[0]) / (this.x[this.x.length - 1] - this.x[0])) * this.width
     }
 
-    drawLine(y) {
-        let navigator = this;
+    drawLines(data) {
+        this.data = {};
+        this.visible = {};
+        this.colors = data.colors;
 
-        let points = ' ';
+        for (let i = 0; i < data.columns.length; i++) {
+            let id = data.columns[i][0];
+            if (data.types[id] === 'line') {
+                this.data[id] = data.columns[i].slice(1);
+                this.visible[id] = true;
+                this.drawLine(id, data.colors[id]);
+            }
+        }
+    }
+
+    updateLine(id) {
+        let polyline = this.g.querySelector('#nav-line-'+ id);
+        polyline.classList.remove("invisible");
+        if (!this.visible[id]) {
+            polyline.classList.add("invisible");
+        }
+    }
+
+    drawLine(id, toDraw, color=null) {
+        let navigator = this;
+        if (!color) {
+            color = this.colorGenerator.getNextColor();
+        }
+
+        let y = this.data[id], points = '';
         this.x.forEach(function (xn, i) {
             points += navigator.transform_date(navigator.x[i]) + ',' + navigator.transform_value(y[i]) + ' ';
         });
 
-        createPolyline(this.g, {'points': points, 'fill': 'none', 'stroke': this.colorGenerator.getNextColor(), 'stroke-width': '1'});
+        createPolyline(this.g, {'points': points, 'fill': 'none', 'stroke': color, 'stroke-width': '1', 'id': 'nav-line-' + id});
+    }
+
+    changeVisible(lineId, isVisible) {
+        this.visible[lineId] = isVisible;
+        this.updateLine(lineId);
     }
 }
 
 class Chart {
     constructor(el, width, data) {
-        console.log(data);
         this.el = el;
         this.width = width;
+        this.eventsCheckboxWasChanged = [];
 
         this.chart = new ChartMain(el.find('div.chart-main'), data);
-        this.navigation = new ChartNavigation(el.find('div.chart-navigation'), this.chart.x, this.chart.data, this.chart.min, this.chart.max);
+        this.navigation = new ChartNavigation(el.find('div.chart-navigation'), this.chart.x, data, this.chart.min, this.chart.max);
 
         this.onLeftBorderWasMoved(this.chart, this.chart.moveLeft);
         this.onRightBorderWasMoved(this.chart, this.chart.moveRight);
 
         this.createLabels(data, el.find('div.chart-labels'));
+
+        this.onCheckboxWasChanged(this.chart, this.chart.changeVisible);
+        this.onCheckboxWasChanged(this.navigation, this.navigation.changeVisible);
     }
 
     createLabels(data, el) {
+        let chart = this;
         for (let name in data.names) {
-            let roundDiv = $('<div>', {'class': 'round'}).appendTo(el);
-            let label = $('<label>', {'class': 'checkbox-container', 'for': 'checkbox'}).appendTo(roundDiv);
-            $('<input>', {'type': 'checkbox', 'name': 'chart-check', 'checked': 'checked', 'value': name, 'id': 'checkbox'}).appendTo(roundDiv);
-            // label.html(label.html() + ' ' + data.names[name]); https://codepen.io/AllThingsSmitty/pen/WjZVjo
+            let parentDiv = $('<div>', {'class': 'checkbox-block'}).appendTo(el);
+            let roundDiv = $('<div>', {'class': 'round'}).appendTo(parentDiv);
+            let input = $('<input>', {
+                'type': 'checkbox',
+                'checked': 'checked',
+                'value': name,
+                'id': 'checkbox-' + name
+            }).appendTo(roundDiv);
+
+            $('<label>', {
+                'class': 'checkbox-container',
+                'for': 'checkbox-' + name,
+                'css': {
+                    'backgroundColor': data.colors[name],
+                    'borderColor': data.colors[name]
+                }
+            }).appendTo(roundDiv);
+            $('<label>', {'class': 'checkbox-label', 'for': 'checkbox-' + name}).text(data.names[name]).appendTo(parentDiv);
+
+            input.change(function (e) {
+                let id = e.target.id.replace('checkbox-', '');
+
+                chart.eventsCheckboxWasChanged.forEach(function (func) {
+                    func(id, e.target.checked);
+                });
+            })
         }
     }
 
@@ -559,5 +629,9 @@ class Chart {
 
     onRightBorderWasMoved(_class, func) {
         this.navigation.eventRightBorderWasMoved.push(func.bind(_class));
+    }
+
+    onCheckboxWasChanged(_class, func) {
+        this.eventsCheckboxWasChanged.push(func.bind(_class));
     }
 }
