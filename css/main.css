@@ -2,10 +2,6 @@ div.chart {
     width: 600px;
 }
 
-div.chart div {
-    width: 100%;
-}
-
 div.chart div.chart-main {
     position: relative;
 }
@@ -67,6 +63,7 @@ div.chart div.chart-labels div.checkbox-block {
     border-radius: 20px;
     cursor: pointer;
     width: auto;
+    float: left;
 }
 
 div.chart div.checkbox-block:not(:first-child) {
@@ -76,6 +73,7 @@ div.chart div.checkbox-block:not(:first-child) {
 div.chart div.round {
     position: relative;
     width: auto;
+    float: left;
 }
 
 div.chart div.round label {
