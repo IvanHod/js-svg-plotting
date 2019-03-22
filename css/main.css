@@ -6,12 +6,35 @@ div.chart div {
     width: 100%;
 }
 
+div.chart div.chart-main {
+    position: relative;
+}
+
 div.chart .chart-navigation {
     position: relative;
     margin-top: 20px;
 }
 
-div.chart .chart-navigation>svg, div {
+div.chart div.helping-block {
+    position: absolute;
+    border: 1px solid gray;
+    background-color: white;
+    padding: 5px 10px;
+    /*display: none;*/
+    top: 0;
+    width: auto;
+    border-radius: 5px;
+}
+
+div.chart div.helping-block div {
+    width: auto;
+}
+
+div.chart .helping-detail {
+    margin-top: 10px;
+}
+
+div.chart .helping-detail > div {
     float: left;
 }
 
@@ -35,6 +58,7 @@ div.chart div.navigation-border {
 
 div.chart div.chart-labels {
     margin-top: 20px;
+    float: left;
 }
 
 div.chart div.chart-labels div.checkbox-block {

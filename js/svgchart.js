@@ -127,7 +127,7 @@ class YAxis extends Axis {
         this.draw();
     }
 
-    getValue(pixel) {
+    getValue(pixel, id) {
         let invertPixel = this.height - this.paddingBottom - pixel;
         let percentile = invertPixel / (this.height - this.paddingBottom);
         let minVal = getMinOfArray(this.data), maxVal = getMaxOfArray(this.data);
@@ -322,15 +322,40 @@ class ChartMain {
         this.yaxis = new YAxis(svg, data.columns[1].slice(1));
 
         this.drawLines(0, null, true);
+
+        this.createHelpWindow(data);
     }
 
-    helpWindow() {
-        $('<div>', {'class': 'helping-block', 'css': {'display': 'none', width: ''}})
+    createHelpWindow(data) {
+        let helpingBlock = $('<div>', {'class': 'helping-block'}).appendTo(this.el);
+        $('<div>', {'class': 'helping-date'}).appendTo(helpingBlock);
+
+        let dataInfo = $('<div>', {'class': 'helping-data-info-block'}).appendTo(helpingBlock);
+
+        for (let id in this.data) {
+            let detail = $('<div>', {
+                'id': 'helping-detail-' + id,
+                'class': 'helping-detail',
+                'css': {
+                    'color': this.colors[id]
+                }
+            }).appendTo(dataInfo);
+            $('<div>', {'class': 'helping-detail-number'}).appendTo(detail);
+            $('<div>', {'class': 'helping-detail-name'}).text(data.names[id]).appendTo(detail);
+        }
+        this.helpingBlock = helpingBlock;
     }
 
     mouseMoving(e) {
         let pixel = e.offsetX;
-        console.log(this.xaxis.getDateByPixel(pixel, this.minIndex, this.maxIndex));
+        let date = this.xaxis.getDateByPixel(pixel, this.minIndex, this.maxIndex);
+        $(this.helpingBlock).find('.helping-date').text(date);
+
+        for (let id in this.data) {
+            let detail = $(this.helpingBlock).find('#helping-detail-' + id);
+            console.log(detail.children('.helping-detail-number'))
+            detail.children('.helping-detail-number').text(this.yaxis.getValue(e.offsetY));
+        }
     }
 
     formData(data) {
