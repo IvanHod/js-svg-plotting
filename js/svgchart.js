@@ -531,6 +531,7 @@ class ChartNavigation {
 
 class Chart {
     constructor(el, width, data) {
+        console.log(data);
         this.el = el;
         this.width = width;
 
@@ -539,6 +540,17 @@ class Chart {
 
         this.onLeftBorderWasMoved(this.chart, this.chart.moveLeft);
         this.onRightBorderWasMoved(this.chart, this.chart.moveRight);
+
+        this.createLabels(data, el.find('div.chart-labels'));
+    }
+
+    createLabels(data, el) {
+        for (let name in data.names) {
+            let roundDiv = $('<div>', {'class': 'round'}).appendTo(el);
+            let label = $('<label>', {'class': 'checkbox-container', 'for': 'checkbox'}).appendTo(roundDiv);
+            $('<input>', {'type': 'checkbox', 'name': 'chart-check', 'checked': 'checked', 'value': name, 'id': 'checkbox'}).appendTo(roundDiv);
+            // label.html(label.html() + ' ' + data.names[name]); https://codepen.io/AllThingsSmitty/pen/WjZVjo
+        }
     }
 
     onLeftBorderWasMoved(_class, func) {
