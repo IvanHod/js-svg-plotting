@@ -547,7 +547,6 @@ class ChartNavigation {
     }
 
     windowWasMoved(startPixel, endPixel) {
-        let obj = this;
         let startPercentile = (startPixel - 0) / (this.width - 0),
             endPercentile = (endPixel - 0) / (this.width - 0);
 
@@ -589,7 +588,7 @@ class ChartNavigation {
             if (data.types[id] === 'line') {
                 this.data[id] = data.columns[i].slice(1);
                 this.visible[id] = true;
-                this.drawLine(id, data.colors[id]);
+                this.drawLine(id, true, data.colors[id]);
             }
         }
     }
