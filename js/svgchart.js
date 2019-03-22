@@ -423,6 +423,13 @@ class ChartMain {
         this.yaxis.redraw();
     }
 
+    moveWindow(start_index, end_index) {
+        this.drawLines(start_index, end_index);
+
+        this.xaxis.redraw(start_index, end_index);
+        this.yaxis.redraw();
+    }
+
     changeVisible(lineId, isVisible) {
         this.visible[lineId] = isVisible;
 
@@ -440,8 +447,9 @@ class ChartNavigation {
         this.right_index = x.length - 1;
         this.width = el.width();
         this.height = 90;
-        this.left_border_dragging = 0;
-        this.right_border_dragging = 0;
+        this.left_border_dragging = false;
+        this.right_border_dragging = false;
+        this.window_is_moving = false;
         this.colorGenerator = new ColorGenerator();
         this.initEvents();
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="navigation"></svg>');
@@ -453,6 +461,7 @@ class ChartNavigation {
 
         this.eventLeftBorderWasMoved = [];
         this.eventRightBorderWasMoved = [];
+        this.eventWindowWasMoved = [];
     }
 
     initEvents() {
@@ -462,10 +471,13 @@ class ChartNavigation {
                 chart.left_border_dragging = true;
             } else if (e.offsetX > $(this).width()) {
                 chart.right_border_dragging = true;
+            } else if (e.offsetX > 0 && e.offsetX < $(this).width()) {
+                chart.window_is_moving = e.offsetX;
             }
         }).on('mouseup', '.navigation-border', function (e) {
             chart.left_border_dragging = false;
             chart.right_border_dragging = false;
+            chart.window_is_moving = false;
         });
 
         this.el.on('mousemove', '.navigation-blackout', function (e) {
@@ -475,7 +487,7 @@ class ChartNavigation {
             let offsetX = e.pageX - 8;
             if (chart.left_border_dragging && offsetX >= border / 2 && offsetX < chart.width - border * 1.5) {
                 $(this).children().css({'width': (chart.width - e.pageX + 8 - border * 1.5 - offsetRight) + 'px'});
-                $(this).css({'border-left': (offsetX - border / 2) + 'px solid rgba(0, 0, 0, 0.15)'});
+                $(this).css({'border-left-width': (offsetX - border / 2) + 'px'});
                 $(this).css({'width': (chart.width - e.pageX + 8 + border / 2 - offsetRight) + 'px'});
 
                 chart.leftBorderWasMoved(offsetX - border / 2);
@@ -484,9 +496,22 @@ class ChartNavigation {
                 let frameWidth = e.pageX - border * 1.5 - offsetLeft - 8;
                 $(this).children().css({'width': frameWidth + 'px'});
                 $(this).css({'width': (frameWidth + border * 2) + 'px'});
-                $(this).css({'border-right': (chart.width - frameWidth - offsetLeft - border * 2) + 'px solid rgba(0, 0, 0, 0.15)'});
+                $(this).css({'border-right-width': (chart.width - frameWidth - offsetLeft - border * 2) + 'px'});
 
                 chart.rightBorderWasMoved(offsetX + border / 2);
+            } else if (chart.window_is_moving) {
+                let maxWidth = chart.width - $(this).width(), borderWindowWidth = $(this.children[0]).width();
+
+                let borderLeft = Math.max(0, offsetX - chart.window_is_moving - border);
+                borderLeft = Math.min(borderLeft, maxWidth);
+                $(this).css({'border-left-width': borderLeft + 'px'});
+
+                let distanceToRightBorder = borderWindowWidth - chart.window_is_moving + border;
+                let borderRight = Math.max(0, chart.width - offsetX - distanceToRightBorder);
+                borderRight = Math.min(borderRight, maxWidth);
+                $(this).css({'border-right-width': borderRight + 'px'});
+
+                chart.windowWasMoved(borderLeft, borderLeft + borderWindowWidth + border * 2);
             }
         });
     }
@@ -518,6 +543,30 @@ class ChartNavigation {
 
         this.eventRightBorderWasMoved.forEach(function (func, i) {
             func(obj.left_index, index);
+        });
+    }
+
+    windowWasMoved(startPixel, endPixel) {
+        let obj = this;
+        let startPercentile = (startPixel - 0) / (this.width - 0),
+            endPercentile = (endPixel - 0) / (this.width - 0);
+
+        let minVal = this.x[0], maxVal = this.x[this.x.length - 1];
+        let startTimestamp = Math.round(minVal + (maxVal - minVal) * startPercentile);
+        let endTimestamp = Math.round(minVal + (maxVal - minVal) * endPercentile);
+
+        let startIndex = 0, endIndex = this.x.length - 1;
+        while (startTimestamp > this.x[startIndex]) {
+            startIndex += 1;
+        }
+        while (endTimestamp <= this.x[endIndex]) {
+            endIndex -= 1;
+        }
+        this.left_index = startIndex;
+        this.right_index = endIndex;
+
+        this.eventWindowWasMoved.forEach(function (func) {
+            func(startIndex, endIndex);
         });
     }
 
@@ -584,6 +633,7 @@ class Chart {
 
         this.onLeftBorderWasMoved(this.chart, this.chart.moveLeft);
         this.onRightBorderWasMoved(this.chart, this.chart.moveRight);
+        this.onWindowWasMoved(this.chart, this.chart.moveWindow);
 
         this.createLabels(data, el.find('div.chart-labels'));
 
@@ -629,6 +679,10 @@ class Chart {
 
     onRightBorderWasMoved(_class, func) {
         this.navigation.eventRightBorderWasMoved.push(func.bind(_class));
+    }
+
+    onWindowWasMoved(_class, func) {
+        this.navigation.eventWindowWasMoved.push(func.bind(_class));
     }
 
     onCheckboxWasChanged(_class, func) {
