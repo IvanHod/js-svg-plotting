@@ -11,13 +11,6 @@ export class XAxis extends Axis {
         this.level = 1;
         this.left_offset = 0;
         this.right_offset = 0;
-        let shape = createSvgElement('line', {
-            'x1': 0,
-            'y1': this.height - this.paddingBottom / 2,
-            'x2': this.width,
-            'y2': this.height - this.paddingBottom / 2,
-            'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
-        this.svg.append(shape);
 
         this.draw();
     }
@@ -69,7 +62,7 @@ export class XAxis extends Axis {
         let padding = (lastPos - startPos - widthOfWord * numberWords) / (numberWords - 1);
 
         let group = createSvgElement('g', {'class': 'xaxis'});
-        $(this.svg).append(group);
+        this.svg.append(group);
 
         for (let i = 0; i < numberWords; i++) {
             let date = this.getDateByPixel(startPos + widthOfWord / 2);
@@ -100,8 +93,8 @@ export class XAxis extends Axis {
 
         let labels = $(this.svg).find('g.xaxis')[0].childNodes;
         labels.forEach(function (textElement, i) {
-            let currentPixel = axis.width - padding - XAxis.getMovingCoordinate(textElement, false) + textElement.getBBox().width / 2;
-            let leftOffset = currentPixel - ((currentPixel * leftWidth) / (axis.width - padding));
+            let currentPixel = axis.width - XAxis.getMovingCoordinate(textElement, false);
+            let leftOffset = currentPixel - ((currentPixel * leftWidth) / (axis.width));
 
             currentPixel = XAxis.getMovingCoordinate(textElement, false);
             let rightOffset = currentPixel - (currentPixel * rightWidth) / axis.width;

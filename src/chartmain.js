@@ -1,9 +1,10 @@
 import {ColorGenerator} from "./tools/colorgenerator";
-import {createPolyline, createSvgElement} from "./tools/svg";
+import {createPolyline, createSvgElement, createTransform} from "./tools/svg";
 import {getMaxOfArray, getMinOfArray} from "./tools/queries";
 import {XAxis} from "./axis/xaxis";
 import {YAxis} from "./axis/yaxis";
 import $ from 'jquery';
+import moment from 'moment'
 
 export class ChartMain {
     constructor(el, data) {
@@ -23,7 +24,6 @@ export class ChartMain {
 
         this.colorGenerator = new ColorGenerator();
         this.formData(data);
-        this.detectMinMax();
 
         el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
         let svg = el.find('svg');
@@ -36,7 +36,7 @@ export class ChartMain {
         svg.on('mouseleave', this.mouseLeave.bind(this));
 
         this.xaxis = new XAxis(svg, data.columns[0].slice(1));
-        this.yaxis = new YAxis(svg, data.columns[1].slice(1));
+        this.yaxis = new YAxis(svg, this.data);
 
         this.drawLines(0, null, true);
 
@@ -142,15 +142,18 @@ export class ChartMain {
     }
 
     detectMinMax() {
-        let min = this.min, max = this.max;
+        let min = Number.POSITIVE_INFINITY, max = Number.NEGATIVE_INFINITY;
         for (let id in this.data) {
             if (this.visible[id]) {
-                min = Math.min(min, getMinOfArray(this.data[id]));
-                max = Math.max(max, getMaxOfArray(this.data[id]));
+                let data = this.data[id].slice(this.minIndex, this.maxIndex);
+                min = Math.min(min, getMinOfArray(data));
+                max = Math.max(max, getMaxOfArray(data));
             }
         }
         let isChange = min !== this.min && max !== this.max;
+        this.prevMin = Number.isFinite(this.min) ? this.min : min;
         this.min = min;
+        this.prevMax = Number.isFinite(this.max) ? this.max : max;
         this.max = max;
         return isChange
     }
@@ -166,36 +169,59 @@ export class ChartMain {
         return index;
     }
 
-    transform_value(yn) {
-        let minY = this.min, maxY = this.max;
+    transform_value(yn, min=null, max=null) {
+        if (!min) {
+            min = this.min;
+            max = this.max;
+        }
         let height = this.height - this.paddingBottom;
-        return height - ((yn - minY) / (maxY - minY)) * height
+        return height - ((yn - min) / (max - min)) * height
     }
 
     transform_date(xn) {
         return ((xn - this.minX) / (this.maxX - this.minX)) * this.width
     }
 
-    drawLine(id, start_index=0, end_index=null) {
-        let obj = this;
-
-        let y = this.data[id], points = '';
-        for (let i = start_index; i <= end_index; i++) {
-            points += this.transform_date(this.x[i]) + ',' + obj.transform_value(y[i]) + ' ';
-        }
-        let props = {'points': points, 'fill': 'none', 'id': 'chart-line-' + id, 'stroke-width': '1', 'stroke': this.colors[id]};
-
+    drawLine(id, start_index=0, end_index=null, animate=false) {
         let polyline = $(this.g).find('>#chart-line-' + id)[0];
-        if (polyline) {
-            polyline.remove()
+
+        if (polyline && !this.visible[id]) {
+            polyline.remove();
         }
 
         if (this.visible[id]) {
-            createPolyline(this.g, props);
+            let Y = this.data[id], points = '', newPoints = '';
+            for (let i = start_index; i <= end_index; i++) {
+                let x = this.transform_date(this.x[i]);
+                points += x + ',' + this.transform_value(Y[i], this.prevMin, this.prevMax) + ' ';
+                newPoints += x + ',' + this.transform_value(Y[i]) + ' ';
+            }
+
+            if (!polyline) {
+                createPolyline(this.g, {
+                    'points': newPoints,
+                    'fill': 'none',
+                    'id': 'chart-line-' + id,
+                    'stroke-width': '1', 'stroke': this.colors[id]});
+            } else {
+                if (!animate) {
+                    let animateElem = polyline.childNodes[0];
+                    if (animateElem) {
+                        animateElem.remove();
+                    }
+                    polyline.setAttributeNS(null, 'points', newPoints);
+                } else {
+                    polyline.setAttributeNS(null, 'points', points);
+
+                    let animateElem = createTransform('points', points, newPoints);
+                    polyline.append(animateElem);
+                    animateElem.beginElement();
+                }
+            }
         }
     }
 
-    drawLines(start_index=0, end_index=null, isNewLines=false) {
+    drawLines(start_index=0, end_index=null, animate=false) {
         if (!end_index) {
             end_index = this.x.length - 1;
         }
@@ -203,11 +229,13 @@ export class ChartMain {
         this.minIndex = start_index;
         this.maxIndex = end_index;
 
+        this.detectMinMax();
+
         this.minX = this.x[start_index];
         this.maxX = this.x[end_index];
 
         for (let id in this.data) {
-            this.drawLine(id, start_index, end_index, isNewLines);
+            this.drawLine(id, start_index, end_index, animate);
         }
     }
 
@@ -235,6 +263,8 @@ export class ChartMain {
     changeVisible(lineId, isVisible) {
         this.visible[lineId] = isVisible;
 
-        this.drawLines(this.minIndex, this.maxIndex);
+        this.drawLines(this.minIndex, this.maxIndex, true);
+
+        this.yaxis.redraw(this.min, this.max);
     }
 }

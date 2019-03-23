@@ -4,9 +4,8 @@ import {ChartNavigation} from "./chartnav";
 
 export class Polychart {
     constructor(el, width, data) {
+        el.css({'width': width});
         this.el = el;
-        this.width = width;
-        this.eventsCheckboxWasChanged = [];
 
         let mainBlock = $('<div>', {'class': 'chart-main'}).appendTo(el);
         this.chart = new ChartMain(mainBlock, data);
@@ -15,6 +14,9 @@ export class Polychart {
         this.navigation = new ChartNavigation(navigationBlock,
             this.chart.x, data,
             this.chart.min, this.chart.max);
+
+        this.width = width;
+        this.eventsCheckboxWasChanged = [];
 
         this.onLeftBorderWasMoved(this.chart, this.chart.moveLeft);
         this.onRightBorderWasMoved(this.chart, this.chart.moveRight);

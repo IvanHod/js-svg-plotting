@@ -5,10 +5,12 @@ import $ from 'jquery'
 $(document).ready(function () {
     let charts = $('#charts');
 
-    json.forEach(function (el) {
-        let chartBlock = $('<div>', {'id': 'chart', 'class': 'polychart'}).appendTo(charts);
+    json.forEach(function (el, i) {
+        if (i === 0) {
+            let chartBlock = $('<div>', {'id': 'chart', 'class': 'polychart'}).appendTo(charts);
 
-        new Polychart(chartBlock, 600, el);
+            new Polychart(chartBlock, 600, el);
+        }
     });
 
 });

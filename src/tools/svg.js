@@ -28,20 +28,19 @@ export function createPolyline(group, props) {
     }
 
     group.append(shape);
+
     return shape
 }
 
 export function createTransform(type, from, to, fill='freeze') {
-    let animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
-    animate.setAttributeNS(null, 'attributeName', 'transform');
-    animate.setAttributeNS(null, 'attributeType', 'XML');
-    animate.setAttributeNS(null, 'type', type);
+    let animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+    animate.setAttributeNS(null, 'attributeName', type);
 
     animate.setAttributeNS(null, 'from', from);
     animate.setAttributeNS(null, 'to', to);
     animate.setAttributeNS(null, 'fill', fill);
 
     animate.setAttributeNS(null, 'begin', 'indefinite');
-    animate.setAttributeNS(null, 'dur', '1s');
+    animate.setAttributeNS(null, 'dur', '200ms');
     return animate
 }
