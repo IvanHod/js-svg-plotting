@@ -1,17 +1,17 @@
-div.chart {
+div.polychart {
     width: 600px;
 }
 
-div.chart div.chart-main {
+div.polychart div.chart-main {
     position: relative;
 }
 
-div.chart .chart-navigation {
+div.polychart .chart-navigation {
     position: relative;
     margin-top: 20px;
 }
 
-div.chart div.helping-block {
+div.polychart div.helping-block {
     position: absolute;
     border: 1px solid gray;
     background-color: white;
@@ -21,27 +21,27 @@ div.chart div.helping-block {
     border-radius: 5px;
 }
 
-div.chart div.helping-block.hide {
+div.polychart div.helping-block.hide {
     display: none;
 }
 
-div.chart div.helping-block div {
+div.polychart div.helping-block div {
     width: auto;
 }
 
-div.chart .helping-detail {
+div.polychart .helping-detail {
     margin-top: 10px;
 }
 
-div.chart .helping-detail {
+div.polychart .helping-detail {
     float: left;
 }
 
-div.chart .helping-detail:not(:first-child) {
+div.polychart .helping-detail:not(:first-child) {
     margin-left: 10px;
 }
 
-div.chart .navigation-blackout {
+div.polychart .navigation-blackout {
     border: 0 solid rgba(0, 0, 0, 0.15);
     position: absolute;
     width: 100%;
@@ -49,7 +49,7 @@ div.chart .navigation-blackout {
     cursor: pointer;
 }
 
-div.chart div.navigation-border {
+div.polychart div.navigation-border {
     border: 5px solid rgba(0, 0, 0, 0.3);
     border-left: 10px solid rgba(0, 0, 0, 0.3);
     border-right: 10px solid rgba(0, 0, 0, 0.3);
@@ -59,12 +59,12 @@ div.chart div.navigation-border {
     cursor: pointer;
 }
 
-div.chart div.chart-labels {
+div.polychart div.chart-labels {
     margin-top: 20px;
-    float: left;
+    overflow: hidden;
 }
 
-div.chart div.chart-labels div.checkbox-block {
+div.polychart div.chart-labels div.checkbox-block {
     padding: 5px 10px;
     border: gray solid 1px;
     border-radius: 20px;
@@ -73,17 +73,17 @@ div.chart div.chart-labels div.checkbox-block {
     float: left;
 }
 
-div.chart div.checkbox-block:not(:first-child) {
+div.polychart div.checkbox-block:not(:first-child) {
     margin-left: 10px;
 }
 
-div.chart div.round {
+div.polychart div.round {
     position: relative;
     width: auto;
     float: left;
 }
 
-div.chart div.round label {
+div.polychart div.round label {
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 50%;
@@ -95,7 +95,7 @@ div.chart div.round label {
     width: 14px;
 }
 
-div.chart div.round label:after {
+div.polychart div.round label:after {
     border: 1.5px solid #fff;
     border-top: none;
     border-right: none;
@@ -109,19 +109,19 @@ div.chart div.round label:after {
     width: 7px;
 }
 
-div.chart div.round input[type="checkbox"] {
+div.polychart div.round input[type="checkbox"] {
     visibility: hidden;
 }
 
-div.chart div.round input[type="checkbox"]:checked + label {
+div.polychart div.round input[type="checkbox"]:checked + label {
     background-color: #66bb6a;
     border-color: #66bb6a;
 }
 
-div.chart div.round input[type="checkbox"]:checked + label:after {
+div.polychart div.round input[type="checkbox"]:checked + label:after {
     opacity: 1;
 }
 
-div.chart polyline.invisible, div.chart g.invisible {
+div.polychart polyline.invisible, div.polychart g.invisible {
     visibility: hidden;
 }
