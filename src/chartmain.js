@@ -63,7 +63,7 @@ export class ChartMain {
                 'id': 'helping-detail-' + id,
                 'class': 'helping-detail',
                 'css': {
-                    'color': this.colors[id]
+                    'color': this.colors[id],
                 }
             }).appendTo(dataInfo);
             $('<div>', {'class': 'helping-detail-number'}).appendTo(detail);
@@ -93,9 +93,9 @@ export class ChartMain {
                 let circleY = this.yaxis.getPixelByValue(value, this.min, this.max);
                 let circleX = this.xaxis.getPixelByTimestamp(this.x[index], this.minIndex, this.maxIndex);
 
-                let cirlce = this.helpingGroup.getElementsByClassName('circle-label-' + id)[0];
-                cirlce.setAttributeNS(null, 'cx', circleX);
-                cirlce.setAttributeNS(null, 'cy', circleY);
+                let circle = this.helpingGroup.getElementsByClassName('circle-label-' + id)[0];
+                circle.setAttributeNS(null, 'cx', circleX);
+                circle.setAttributeNS(null, 'cy', circleY);
             }
         }
 
@@ -103,13 +103,13 @@ export class ChartMain {
         line.setAttributeNS(null, 'x1', pixel);
         line.setAttributeNS(null, 'x2', pixel);
 
-        let helpingBlock = $(this.el).find('.helping-block');
-        let helpingBlockWidth = helpingBlock[0].offsetWidth;
+        // let helpingBlock = $(this.el).find('.helping-block');
+        // let helpingBlockWidth = helpingBlock[0].offsetWidth;
 
-        let helpingBlockPosition = Math.min(this.width - helpingBlockWidth, pixel - helpingBlockWidth / 2);
-        helpingBlockPosition = Math.max(0, helpingBlockPosition);
+        // let helpingBlockPosition = Math.min(this.width - helpingBlockWidth, pixel - helpingBlockWidth / 2);
+        // helpingBlockPosition = Math.max(0, helpingBlockPosition);
 
-        helpingBlock.css({'left': helpingBlockPosition + 'px'});
+        // helpingBlock.css({'left': helpingBlockPosition + 'px'});
     }
 
     mouseOver() {
@@ -202,7 +202,7 @@ export class ChartMain {
                     'points': newPoints,
                     'fill': 'none',
                     'id': 'chart-line-' + id,
-                    'stroke-width': '1', 'stroke': this.colors[id]});
+                    'stroke-width': '2', 'stroke': this.colors[id]});
             } else {
                 if (!animate) {
                     let animateElem = polyline.childNodes[0];

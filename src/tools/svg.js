@@ -29,6 +29,9 @@ export function createPolyline(group, props) {
 
     group.append(shape);
 
+    let animate = createTransform('points', '0', '0');
+    shape.append(animate);
+
     return shape
 }
 

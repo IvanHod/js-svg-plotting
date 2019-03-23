@@ -64,9 +64,12 @@ export class XAxis extends Axis {
         let group = createSvgElement('g', {'class': 'xaxis'});
         this.svg.append(group);
 
+        console.log(lastPos, widthOfWord);
+        let y = this.height - 3;
         for (let i = 0; i < numberWords; i++) {
+            console.log(startPos, startPos + widthOfWord + padding);
             let date = this.getDateByPixel(startPos + widthOfWord / 2);
-            this.appendLabel(startPos, this.height, group, date, {'class': 'level-0'});
+            this.appendLabel(startPos, y, group, date, {'class': 'level-0'});
             startPos += widthOfWord + padding;
         }
     }
@@ -92,7 +95,7 @@ export class XAxis extends Axis {
         let rightWidth = delta * (this.data.length - 1 - start_index);
 
         let labels = $(this.svg).find('g.xaxis')[0].childNodes;
-        labels.forEach(function (textElement, i) {
+        labels.forEach(function (textElement) {
             let currentPixel = axis.width - XAxis.getMovingCoordinate(textElement, false);
             let leftOffset = currentPixel - ((currentPixel * leftWidth) / (axis.width));
 
@@ -130,6 +133,7 @@ export class XAxis extends Axis {
     appendNextLevel(opacity) {
         let g = $(this.svg).find('g.xaxis'), widthOfWord = this.widthOfLetter * this.format.length;
         let labels = $(this.svg).find('g.xaxis .level-' + this.level);
+        let height = this.height - 3;
         if (!labels.length) {
             let prevLabels = $(this.svg).find('g.xaxis text');
             let n = prevLabels.length - 1;
@@ -139,7 +143,9 @@ export class XAxis extends Axis {
 
                 let newStartPos = currentEndPos + (nextStartPos - currentEndPos - widthOfWord) / 2;
                 let date = this.getDateByPixel(newStartPos + (widthOfWord / 2));
-                let text = this.appendLabel(newStartPos, this.height, g, date, {'class': 'level-' + this.level, 'opacity': opacity}, prevLabels[i]);
+                let text = this.appendLabel(newStartPos, height, g, date, {
+                    'class': 'level-' + this.level,
+                    'opacity': opacity}, prevLabels[i]);
 
                 text.setAttributeNS(null, 'x', currentEndPos + (nextStartPos - currentEndPos - text.getBBox().width) / 2);
                 text.innerHTML = this.getDateByPixel(newStartPos + (text.getBBox().width / 2));

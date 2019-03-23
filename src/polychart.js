@@ -26,6 +26,13 @@ export class Polychart {
 
         this.onCheckboxWasChanged(this.chart, this.chart.changeVisible);
         this.onCheckboxWasChanged(this.navigation, this.navigation.changeVisible);
+
+        let switchDiv = $('<div>', {'class': 'switch-block'}).appendTo(el);
+        let switchBtn = $('<button>', {'class': 'switch-mode'}).text('Switch to night mode').appendTo(switchDiv);
+
+        switchBtn.click(function (e) {
+            $('body').toggleClass('dark');
+        });
     }
 
     createLabels(data, el) {
@@ -56,7 +63,7 @@ export class Polychart {
                 chart.eventsCheckboxWasChanged.forEach(function (func) {
                     func(id, e.target.checked);
                 });
-            })
+            });
         }
     }
 

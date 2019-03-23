@@ -27,7 +27,7 @@ export class Axis {
 
     detectLetterWidth() {
         this.lettersWidth = {};
-        let text = createText({x: 0, y: 0, 'val': 'L', 'font-size': this.fontSize, 'color': 'black'});
+        let text = createText({x: 0, y: 0, 'val': 'J', 'font-size': this.fontSize, 'color': 'black'});
         $(this.svg).append(text);
         this.heightOfLetter = text.getBBox().height;
         this.widthOfLetter = text.getBBox().width;

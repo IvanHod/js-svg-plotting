@@ -1,9 +1,24 @@
+body {
+    background-color: white;
+}
+
+body.dark {
+    background-color: #181720;
+    color: white;
+}
+
+#charts {
+    background-color: inherit;
+}
+
 div.polychart {
     margin-top: 10px;
+    background-color: inherit;
 }
 
 div.polychart div.chart-main {
     position: relative;
+    background-color: inherit;
 }
 
 div.polychart .chart-navigation {
@@ -14,11 +29,12 @@ div.polychart .chart-navigation {
 div.polychart div.helping-block {
     position: absolute;
     border: 1px solid gray;
-    background-color: white;
     padding: 5px 10px;
     top: 0;
     width: auto;
     border-radius: 5px;
+    background-color: inherit;
+    left: 40%;
 }
 
 div.polychart div.helping-block.hide {
@@ -124,4 +140,17 @@ div.polychart div.round input[type="checkbox"]:checked + label:after {
 
 div.polychart polyline.invisible, div.polychart g.invisible {
     visibility: hidden;
+}
+
+div.polychart div.switch-block {
+    text-align: center;
+}
+
+div.polychart div.switch-block button {
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    outline: none;
+    color: #2746ff;
+    background-color: inherit;
 }
