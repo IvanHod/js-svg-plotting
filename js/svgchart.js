@@ -25,6 +25,14 @@ function createLine(props) {
     return shape
 }
 
+function createSvgElement(type, props) {
+    let shape = document.createElementNS('http://www.w3.org/2000/svg', type);
+    for (let prop in props) {
+        shape.setAttributeNS(null, prop, props[prop]);
+    }
+    return shape
+}
+
 function createPolyline(group, props) {
     if (!group) {
         group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -99,11 +107,28 @@ class Axis {
     }
 
     detectLetterWidth() {
-        let text = createText({x: 0, y: 0, 'val': 'J', 'font-size': '20', 'color': 'black'});
+        let axis = this;
+        this.lettersWidth = {};
+        let alphabet = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789 ';
+        alphabet.split('').forEach(function (letter) {
+            let text = createText({x: 0, y: 0, 'val': letter, 'font-size': axis.fontSize, 'color': 'black'});
+            axis.svg.append(text);
+            axis.lettersWidth[letter] = text.getBBox().width;
+            text.remove();
+        });
+        let text = createText({x: 0, y: 0, 'val': 'L', 'font-size': this.fontSize, 'color': 'black'});
         $(this.svg).append(text);
         this.heightOfLetter = text.getBBox().height;
         this.widthOfLetter = text.getBBox().width;
         text.remove();
+    }
+
+    calcWidth(word) {
+        let axis = this, width = 0;
+        word.split('').forEach(function (letter) {
+            width += axis.lettersWidth[letter];
+        });
+        return width;
     }
 
     appendLabel(x, y, g, val, props, currentElement=null) {
@@ -132,6 +157,12 @@ class YAxis extends Axis {
         let percentile = invertPixel / (this.height - this.paddingBottom);
         let minVal = getMinOfArray(this.data), maxVal = getMaxOfArray(this.data);
         return Math.round(minVal + (maxVal - minVal) * percentile);
+    }
+
+    getPixelByValue(value, min, max) {
+        let height = this.height - this.paddingBottom;
+        let percentile = (value - min) / (max - min);
+        return height - height * percentile;
     }
 
     draw() {
@@ -179,26 +210,41 @@ class XAxis extends Axis {
         return moment(this.data[index]).format(this.format);
     }
 
-    getDateByPixel(pixel, start_index = 0, end_index = -1) {
+    getTimestampByPixel(pixel, start_index = 0, end_index = -1) {
         if (end_index === -1) {
             end_index = this.data.length - 1
         }
         let minVal = this.data[start_index], maxVal = this.data[end_index];
 
         let percentile = (pixel - 0) / (this.width - 0);
-        let timestamp = Math.round(minVal + (maxVal - minVal) * percentile);
+        return Math.round(minVal + (maxVal - minVal) * percentile);
+    }
+
+    getDateByPixel(pixel, start_index = 0, end_index = -1) {
+        let timestamp = this.getTimestampByPixel(pixel, start_index, end_index);
 
         return moment(timestamp).format(this.format);
     }
 
-    getPixelByTimestamp(timestamp) {
-        let minVal = this.data[0], maxVal = this.data[this.data.length - 1];
+    getPixelByTimestamp(timestamp, start_index = 0, end_index = -1) {
+        if (end_index === -1) {
+            end_index = this.data.length - 1
+        }
+        let minVal = this.data[start_index], maxVal = this.data[end_index];
         let percentile = (timestamp - minVal) / (maxVal - minVal);
         return this.width * percentile;
+    }
 
+    calcDatesAndPixels(min_index, max_index) {
+        let datesPixelsDict = {};
+        for (let i = 0; i < this.data.length; i++) {
+            datesPixelsDict[this.getDateByIndex(i, min_index, max_index)] = this.getPixelByTimestamp(this.data[i], min_index, max_index);
+        }
+        this.datesPixelsDict = datesPixelsDict;
     }
 
     draw(min_index, max_index) {
+        this.calcDatesAndPixels(min_index, max_index);
         let widthOfWord = this.widthOfLetter * this.format.length;
         let startPos = widthOfWord / 4;
         let lastPos = this.width - startPos;
@@ -208,13 +254,13 @@ class XAxis extends Axis {
 
         let group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         group.setAttributeNS(null, 'class', 'xaxis');
+        $(this.svg).append(group);
 
         for (let i = 0; i < numberWords; i++) {
             let date = this.getDateByPixel(startPos + widthOfWord / 2);
             this.appendLabel(startPos, this.height, group, date, {'class': 'level-0'});
             startPos += widthOfWord + padding;
         }
-        $(this.svg).append(group);
     }
 
     static getMovingCoordinate(elem, isTransform=true, isStart=true) {
@@ -229,7 +275,7 @@ class XAxis extends Axis {
     }
 
     redraw(start_index, end_index) {
-        let axis = this;
+        let axis = this, padding = this.widthOfLetter * this.format.length;
 
         let points = $(this.svg).find('polyline')[0].getAttributeNS(null, 'points').split(' ').slice(0, 2);
 
@@ -239,13 +285,13 @@ class XAxis extends Axis {
 
         let labels = $(this.svg).find('g.xaxis')[0].childNodes;
         labels.forEach(function (textElement, i) {
-            let currentPixel = axis.width - XAxis.getMovingCoordinate(textElement, false);
-            let leftOffset = currentPixel - ((currentPixel * leftWidth) / axis.width);
+            let currentPixel = axis.width - padding - XAxis.getMovingCoordinate(textElement, false) + textElement.getBBox().width / 2;
+            let leftOffset = currentPixel - ((currentPixel * leftWidth) / (axis.width - padding));
 
             currentPixel = XAxis.getMovingCoordinate(textElement, false);
             let rightOffset = currentPixel - (currentPixel * rightWidth) / axis.width;
 
-            textElement.setAttributeNS(null, 'transform', 'translate(' + (leftOffset - rightOffset) + ')'); //
+            textElement.setAttributeNS(null, 'transform', 'translate(' + (leftOffset - rightOffset) + ')');
         });
 
         this.updateOpacity(labels);
@@ -306,6 +352,10 @@ class ChartMain {
         this.maxIndex = this.x.length - 1;
         this.min = Number.POSITIVE_INFINITY;
         this.max = Number.NEGATIVE_INFINITY;
+
+        this.minX = this.x[0];
+        this.maxX = this.x[this.x.length - 1];
+
         this.colorGenerator = new ColorGenerator();
         this.formData(data);
         this.detectMinMax();
@@ -316,7 +366,9 @@ class ChartMain {
         this.g = createGroup({'class': 'plot-lines'});
         svg.append(this.g);
 
-        svg.on('mousemove', this.mouseMoving.bind(this)); // mousedown, mouseup, mouseleave
+        svg.on('mousemove', this.mouseMoving.bind(this));
+        svg.on('mouseover', this.mouseOver.bind(this));
+        svg.on('mouseleave', this.mouseLeave.bind(this));
 
         this.xaxis = new XAxis(svg, data.columns[0].slice(1));
         this.yaxis = new YAxis(svg, data.columns[1].slice(1));
@@ -327,7 +379,16 @@ class ChartMain {
     }
 
     createHelpWindow(data) {
-        let helpingBlock = $('<div>', {'class': 'helping-block'}).appendTo(this.el);
+        this.helpingGroup = createGroup({'class': 'helping-group invisible'});
+        $(this.el).find('svg').append(this.helpingGroup);
+        let line = createSvgElement('line', {
+            'class': 'vertical-line',
+            'x1': 0, 'y1': this.height - this.paddingBottom / 2,
+            'x2': 0, 'y2': 0,
+            'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
+        this.helpingGroup.append(line);
+
+        let helpingBlock = $('<div>', {'class': 'helping-block hide'}).appendTo(this.el);
         $('<div>', {'class': 'helping-date'}).appendTo(helpingBlock);
 
         let dataInfo = $('<div>', {'class': 'helping-data-info-block'}).appendTo(helpingBlock);
@@ -342,19 +403,59 @@ class ChartMain {
             }).appendTo(dataInfo);
             $('<div>', {'class': 'helping-detail-number'}).appendTo(detail);
             $('<div>', {'class': 'helping-detail-name'}).text(data.names[id]).appendTo(detail);
+
+            let circle = createSvgElement('circle', {
+                'cx': 0, 'cy': 0, 'r': 3,
+                'class': 'circle-label-' + id,
+                stroke: this.colors[id], 'stroke-width': '2', 'fill': 'white'});
+            this.helpingGroup.append(circle);
         }
         this.helpingBlock = helpingBlock;
     }
 
     mouseMoving(e) {
         let pixel = e.offsetX;
-        let date = this.xaxis.getDateByPixel(pixel, this.minIndex, this.maxIndex);
-        $(this.helpingBlock).find('.helping-date').text(date);
+        let index = this.getIndexByTimestamp(this.xaxis.getTimestampByPixel(pixel, this.minIndex, this.maxIndex));
+        $(this.helpingBlock).find('.helping-date').text(this.xaxis.getDateByIndex(index));
 
         for (let id in this.data) {
-            let detail = $(this.helpingBlock).find('#helping-detail-' + id);
-            console.log(detail.children('.helping-detail-number'))
-            detail.children('.helping-detail-number').text(this.yaxis.getValue(e.offsetY));
+            if (this.visible[id]) {
+                let detail = $(this.helpingBlock).find('#helping-detail-' + id);
+
+                let value = this.data[id][index];
+                detail.children('.helping-detail-number').text(value);
+
+                let circleY = this.yaxis.getPixelByValue(value, this.min, this.max);
+                let circleX = this.xaxis.getPixelByTimestamp(this.x[index], this.minIndex, this.maxIndex);
+
+                let cirlce = this.helpingGroup.getElementsByClassName('circle-label-' + id)[0];
+                cirlce.setAttributeNS(null, 'cx', circleX);
+                cirlce.setAttributeNS(null, 'cy', circleY);
+            }
+        }
+
+        let line = this.helpingGroup.getElementsByTagName('line')[0];
+        line.setAttributeNS(null, 'x1', pixel);
+        line.setAttributeNS(null, 'x2', pixel);
+
+        let helpingBlock = $(this.el).find('.helping-block');
+        let helpingBlockWidth = helpingBlock[0].offsetWidth;
+
+        let helpingBlockPosition = Math.min(this.width - helpingBlockWidth, pixel - helpingBlockWidth / 2);
+        helpingBlockPosition = Math.max(0, helpingBlockPosition);
+
+        helpingBlock.css({'left': helpingBlockPosition + 'px'});
+    }
+
+    mouseOver() {
+        $(this.el).find('.helping-block').removeClass('hide');
+        this.helpingGroup.classList.remove('invisible')
+    }
+
+    mouseLeave(e) {
+        if (!$(e.relatedTarget).hasClass('helping-block')) {
+            $(this.el).find('.helping-block').addClass('hide');
+            this.helpingGroup.classList.add('invisible');
         }
     }
 
@@ -387,6 +488,17 @@ class ChartMain {
         this.min = min;
         this.max = max;
         return isChange
+    }
+
+    getIndexByTimestamp(timestamp) {
+        let index = 0;
+        while (timestamp > this.x[index]) {
+            index += 1;
+        }
+        if (timestamp - this.x[index - 1] < this.x[index] - timestamp) {
+            index -= 1;
+        }
+        return index;
     }
 
     transform_value(yn) {
@@ -559,7 +671,7 @@ class ChartNavigation {
     rightBorderWasMoved(pixel) {
         let percentile = (pixel - 0) / (this.width - 0), obj = this;
 
-        let minVal = getMinOfArray(this.x), maxVal = getMaxOfArray(this.x);
+        let minVal = this.x[0], maxVal = this.x[this.x.length - 1];
         let timestamp = Math.round(minVal + (maxVal - minVal) * percentile), index = this.x.length - 1;
         while (timestamp < this.x[index]) {
             index -= 1;
@@ -583,7 +695,7 @@ class ChartNavigation {
         while (startTimestamp > this.x[startIndex]) {
             startIndex += 1;
         }
-        while (endTimestamp <= this.x[endIndex]) {
+        while (endTimestamp < this.x[endIndex]) {
             endIndex -= 1;
         }
         this.left_index = startIndex;

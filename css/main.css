@@ -16,10 +16,13 @@ div.chart div.helping-block {
     border: 1px solid gray;
     background-color: white;
     padding: 5px 10px;
-    /*display: none;*/
     top: 0;
     width: auto;
     border-radius: 5px;
+}
+
+div.chart div.helping-block.hide {
+    display: none;
 }
 
 div.chart div.helping-block div {
@@ -30,8 +33,12 @@ div.chart .helping-detail {
     margin-top: 10px;
 }
 
-div.chart .helping-detail > div {
+div.chart .helping-detail {
     float: left;
+}
+
+div.chart .helping-detail:not(:first-child) {
+    margin-left: 10px;
 }
 
 div.chart .navigation-blackout {
@@ -115,6 +122,6 @@ div.chart div.round input[type="checkbox"]:checked + label:after {
     opacity: 1;
 }
 
-div.chart polyline.invisible {
+div.chart polyline.invisible, div.chart g.invisible {
     visibility: hidden;
 }
