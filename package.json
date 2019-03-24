@@ -2,7 +2,7 @@
   "name": "js-svg-plotting",
   "version": "1.0.0",
   "description": "This repo keeps a project to render the simple plots with the help SVG",
-  "main": "index.js",
+  "main": "dist/polychart.js",
   "dependencies": {
   },
   "devDependencies": {
@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "parcel build ./src/polychart.js",
-    "dev": "parcel ./src/index.html"
+    "dev": "parcel ./src/index.html --out-dir ./.dev"
   },
   "repository": {
     "type": "git",
