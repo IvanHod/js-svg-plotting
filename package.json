@@ -9,7 +9,7 @@
     "parcel": "^1.12.3"
   },
   "scripts": {
-    "build": "parcel build ./src/polychart.js",
+    "build": "parcel build ./src/polychart.js --global Polychart",
     "dev": "parcel ./src/index.html --out-dir ./.dev"
   },
   "repository": {
