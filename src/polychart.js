@@ -33,6 +33,7 @@ export class Polychart {
 
         switchBtn.addEventListener('click', function (e) {
             document.getElementsByTagName('body')[0].classList.toggle('dark');
+            el.classList.toggle('dark');
         });
     }
 

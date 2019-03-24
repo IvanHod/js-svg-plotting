@@ -69,6 +69,10 @@ div.polychart .navigation-blackout {
     cursor: pointer;
 }
 
+div.polychart.dark .navigation-blackout {
+    border-color: rgba(238, 238, 238, 0.15);
+}
+
 div.polychart div.navigation-border {
     border: 5px solid rgba(0, 0, 0, 0.3);
     border-left: 10px solid rgba(0, 0, 0, 0.3);
@@ -77,6 +81,10 @@ div.polychart div.navigation-border {
     width: 580px;
     height: 89%;
     cursor: pointer;
+}
+
+div.polychart.dark div.navigation-border {
+    border-color: rgba(238, 238, 238, 0.3);
 }
 
 div.polychart div.chart-labels {

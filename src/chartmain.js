@@ -56,6 +56,7 @@ export class ChartMain {
 
         let dataInfo = query('div', {'class': 'helping-data-info-block'}, helpingBlock);
 
+        let fillColor = getComputedStyle(this.el).backgroundColor;
         for (let id in this.data) {
             let detail = query('div', {
                 'id': 'helping-detail-' + id,
@@ -70,7 +71,7 @@ export class ChartMain {
             let circle = createSvgElement('circle', {
                 'cx': 0, 'cy': 0, 'r': 3,
                 'class': 'circle-label-' + id,
-                stroke: this.colors[id], 'stroke-width': '2', 'fill': 'white'});
+                stroke: this.colors[id], 'stroke-width': '2', 'fill': fillColor});
             this.helpingGroup.append(circle);
         }
         this.helpingBlock = helpingBlock;
@@ -81,6 +82,7 @@ export class ChartMain {
         let index = this.getIndexByTimestamp(this.xaxis.getTimestampByPixel(pixel, this.minIndex, this.maxIndex));
         this.helpingBlock.getElementsByClassName('helping-date')[0].innerHTML = this.xaxis.getDateByIndex(index);
 
+        let fillColor = getComputedStyle(this.el).backgroundColor;
         for (let id in this.data) {
             let detail = this.helpingBlock.querySelector('#helping-detail-' + id);
             let circle = this.helpingGroup.getElementsByClassName('circle-label-' + id)[0];
@@ -96,6 +98,7 @@ export class ChartMain {
 
                 circle.setAttributeNS(null, 'cx', circleX);
                 circle.setAttributeNS(null, 'cy', circleY);
+                circle.setAttributeNS(null, 'fill', fillColor);
             } else {
                 detail.classList.add('hide');
                 circle.classList.add('invisible');

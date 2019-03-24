@@ -78,7 +78,7 @@ export class XAxis extends Axis {
         this.calcDatesAndPixels(min_index, max_index);
         let widthOfWord = this.widthOfLetter * this.format.length;
         let startPos = widthOfWord / 4;
-        let lastPos = this.width - startPos;
+        let lastPos = this.width - widthOfWord / 2;
 
         let numberWords = Math.ceil(((lastPos - startPos) / widthOfWord) / 2);
         let padding = (lastPos - startPos - widthOfWord * numberWords) / (numberWords - 1);
@@ -103,7 +103,7 @@ export class XAxis extends Axis {
     }
 
     redraw(start_index, end_index) {
-        let axis = this, padding = this.widthOfLetter * this.format.length;
+        let axis = this, widthOfWord = this.widthOfLetter * this.format.length;
 
         let points = this.svg.getElementsByTagName('polyline')[0]
             .getAttributeNS(null, 'points').split(' ').slice(0, 2);
@@ -113,14 +113,16 @@ export class XAxis extends Axis {
         let rightWidth = delta * (this.data.length - 1 - start_index);
 
         let labels = this.g.childNodes;
-        labels.forEach(function (textElement) {
-            let currentPixel = axis.width - XAxis.getMovingCoordinate(textElement, false);
-            let leftOffset = currentPixel - ((currentPixel * leftWidth) / (axis.width));
+        labels.forEach(function (textElement, i) {
+            let halfWidth = textElement.getBBox().width / 2;
 
-            currentPixel = XAxis.getMovingCoordinate(textElement, false);
-            let rightOffset = currentPixel - (currentPixel * rightWidth) / axis.width;
+            let currentPixel = axis.width - (XAxis.getMovingCoordinate(textElement, false) + halfWidth);
+            let leftOffset = currentPixel - (currentPixel * leftWidth / axis.width);
 
-            textElement.setAttributeNS(null, 'transform', 'translate(' + (leftOffset - rightOffset) + ')');
+            currentPixel = XAxis.getMovingCoordinate(textElement, false) + halfWidth;
+            let rightOffset = currentPixel - ((currentPixel * rightWidth) / (axis.width));
+
+            textElement.setAttributeNS(null, 'transform', 'translate(' + (leftOffset - rightOffset) + ')');// -
         });
 
         this.updateOpacity(labels);
@@ -160,21 +162,38 @@ export class XAxis extends Axis {
             let n = prevLabels.length - 1;
             for (let i = 0; i < n; i++) {
                 let j = i * 2;
-                let currentEndPos = XAxis.getMovingCoordinate(prevLabels[j], false, false);
-                let nextStartPos = XAxis.getMovingCoordinate(prevLabels[j + 1], false, true);
-
-                let newStartPos = currentEndPos + (nextStartPos - currentEndPos - widthOfWord) / 2;
-                let date = this.getDateByPixel(newStartPos + (widthOfWord / 2));
-
-                let text = this.appendLabel(newStartPos, height, this.g, date, {
-                    'class': 'level-' + this.level,
-                    'opacity': opacity
-                }, prevLabels[i * 2]);
-
-                newStartPos = currentEndPos + (nextStartPos - currentEndPos - text.getBBox().width) / 2;
-                text.setAttributeNS(null, 'x', newStartPos);
-                text.innerHTML = this.getDateByPixel(newStartPos + (text.getBBox().width / 2));
+                this.appendTextElement(prevLabels[j], prevLabels[j + 1], opacity, widthOfWord, height);
             }
+
+            // let nextStartPos = XAxis.getMovingCoordinate(prevLabels[0], true, true);
+            // if (nextStartPos > widthOfWord) {
+            //     this.appendTextElement(0, prevLabels[0], opacity, widthOfWord, height);
+            // }
         }
+    }
+
+    appendTextElement(el1, el2, opacity, widthOfWord, height) {
+        let currentEndPos = el1, nextStartPos = el2;
+        if (!Number.isInteger(el1)) {
+            currentEndPos = XAxis.getMovingCoordinate(el1, false, true);
+        }
+        if (!Number.isInteger(el2)) {
+            nextStartPos = XAxis.getMovingCoordinate(el2, false, false);
+        }
+
+        let newStartPos = currentEndPos + (nextStartPos - currentEndPos - widthOfWord) / 2;
+        let date = this.getDateByPixel(newStartPos + (widthOfWord / 2));
+
+        let text = this.appendLabel(newStartPos, height, this.g, date, {
+            'class': 'level-' + this.level,
+            'opacity': opacity
+        }, el2);
+        if (Number.isInteger(el1)) {
+            console.log(newStartPos, date);
+        }
+
+        newStartPos = currentEndPos + (nextStartPos - currentEndPos - text.getBBox().width) / 2;
+        text.setAttributeNS(null, 'x', newStartPos);
+        text.innerHTML = this.getDateByPixel(newStartPos + (text.getBBox().width / 2));
     }
 }

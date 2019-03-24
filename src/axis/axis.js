@@ -33,15 +33,15 @@ export class Axis {
         text.remove();
     }
 
-    appendLabel(x, y, g, val, props, currentElement=null) {
+    appendLabel(x, y, g, val, props, nextElement=null) {
         let dateText = createText({x: x, y: y, 'val': val, 'font-size': this.fontSize, 'fill': this.color});
         for (let prop in props) {
             dateText.setAttributeNS(null, prop, props[prop]);
         }
-        if (!currentElement) {
+        if (!nextElement) {
             g.append(dateText);
         } else {
-            currentElement.parentNode.insertBefore(dateText, currentElement.nextSibling);
+            nextElement.parentNode.insertBefore(dateText, nextElement);
         }
         return dateText
     }
