@@ -32,6 +32,8 @@ export function query(el, props, appendToElement) {
             element = document.getElementsByTagName(el);
         }
     }
-    appendToElement.append(element);
+    if (appendToElement) {
+        appendToElement.append(element);
+    }
     return element;
 }

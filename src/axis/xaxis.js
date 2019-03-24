@@ -1,7 +1,25 @@
 import {createSvgElement} from "../tools/svg";
 import {Axis} from "./axis";
-import $ from 'jquery';
-import moment from 'moment';
+
+var monthNames = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+var daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function moment(time, format) {
+    let date = new Date(time), res = format;
+    if (format.indexOf('DDD') > -1) {
+        res = res.replace('DDD', daysOfWeek[date.getDay()]);
+    }
+    if (format.indexOf('MMM') > -1) {
+        res = res.replace('MMM', monthNames[date.getMonth()]);
+    }
+    if (format.indexOf('DD') > -1) {
+        let day = date.getDate();
+        res = res.replace('DD', day > 9 ? day : ('0' + day));
+    }
+    return res;
+}
 
 export class XAxis extends Axis {
     constructor(svg, x, width, height, color='gray') {
@@ -19,7 +37,7 @@ export class XAxis extends Axis {
     }
 
     getDateByIndex(index) {
-        return moment(this.data[index]).format(this.format);
+        return moment(this.data[index], this.format);
     }
 
     getTimestampByPixel(pixel, start_index = 0, end_index = -1) {
@@ -36,7 +54,7 @@ export class XAxis extends Axis {
     getDateByPixel(pixel, start_index = 0, end_index = -1) {
         let timestamp = this.getTimestampByPixel(pixel, start_index, end_index);
 
-        return moment(timestamp).format(this.format);
+        return moment(timestamp, this.format);
     }
 
     getPixelByTimestamp(timestamp, start_index = 0, end_index = -1) {
@@ -94,7 +112,7 @@ export class XAxis extends Axis {
         let leftWidth = delta * end_index;
         let rightWidth = delta * (this.data.length - 1 - start_index);
 
-        let labels = $(this.svg).find('g.xaxis')[0].childNodes;
+        let labels = this.g.childNodes;
         labels.forEach(function (textElement) {
             let currentPixel = axis.width - XAxis.getMovingCoordinate(textElement, false);
             let leftOffset = currentPixel - ((currentPixel * leftWidth) / (axis.width));
@@ -119,13 +137,17 @@ export class XAxis extends Axis {
             this.appendNextLevel(0);
             this.level += 1;
         } else if (opacity < 0) {
-            $(this.svg).find('g.xaxis .level-' + (this.level - 1)).remove();
+            let labels = this.g.getElementsByClassName('level-' + (this.level - 1));
+            let n = labels.length;
+            for (let i = n - 1; i >= 0; i--) {
+                labels[i].remove();
+            }
             this.level -= 1;
         } else if (opacity > 0) {
-            let labels = $(this.svg).find('g.xaxis .level-' + (this.level - 1));
-            labels.each(function (i, elem) {
-                elem.setAttributeNS(null, 'opacity', opacity);
-            })
+            let labels = this.g.getElementsByClassName('level-' + (this.level - 1));
+            for (let i = 0; i < labels.length; i++) {
+                labels[i].setAttributeNS(null, 'opacity', opacity);
+            }
         }
 
     }
@@ -134,18 +156,20 @@ export class XAxis extends Axis {
         let widthOfWord = this.widthOfLetter * this.format.length, height = this.height - 3;
         let labels = this.g.getElementsByClassName('level-' + this.level);
         if (!labels.length) {
-            let prevLabels = $(this.svg).find('g.xaxis text');
+            let prevLabels = this.g.getElementsByTagName('text');
             let n = prevLabels.length - 1;
             for (let i = 0; i < n; i++) {
-                let currentEndPos = XAxis.getMovingCoordinate(prevLabels[i], false, false);
-                let nextStartPos = XAxis.getMovingCoordinate(prevLabels[i + 1], false, true);
+                let j = i * 2;
+                let currentEndPos = XAxis.getMovingCoordinate(prevLabels[j], false, false);
+                let nextStartPos = XAxis.getMovingCoordinate(prevLabels[j + 1], false, true);
 
                 let newStartPos = currentEndPos + (nextStartPos - currentEndPos - widthOfWord) / 2;
                 let date = this.getDateByPixel(newStartPos + (widthOfWord / 2));
+
                 let text = this.appendLabel(newStartPos, height, this.g, date, {
                     'class': 'level-' + this.level,
                     'opacity': opacity
-                }, prevLabels[i]);
+                }, prevLabels[i * 2]);
 
                 newStartPos = currentEndPos + (nextStartPos - currentEndPos - text.getBBox().width) / 2;
                 text.setAttributeNS(null, 'x', newStartPos);

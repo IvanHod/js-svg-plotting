@@ -105,14 +105,6 @@ export class ChartMain {
         let line = this.helpingGroup.getElementsByTagName('line')[0];
         line.setAttributeNS(null, 'x1', pixel);
         line.setAttributeNS(null, 'x2', pixel);
-
-        // let helpingBlock = $(this.el).find('.helping-block');
-        // let helpingBlockWidth = helpingBlock[0].offsetWidth;
-
-        // let helpingBlockPosition = Math.min(this.width - helpingBlockWidth, pixel - helpingBlockWidth / 2);
-        // helpingBlockPosition = Math.max(0, helpingBlockPosition);
-
-        // helpingBlock.css({'left': helpingBlockPosition + 'px'});
     }
 
     mouseOver() {

@@ -58,7 +58,7 @@ export class ChartNavigation {
         });
 
         blackoutDiv.addEventListener('touchstart', function (e) {
-            let parentBorderLeft = parseFloat($(this.parentNode).css('border-left-width'));
+            let parentBorderLeft = parseFloat(getComputedStyle(this.parentNode, null).getPropertyValue('border-left-width'));
             let offsetX = e.touches[0].pageX - chart.offsetX - chart.borderDivWidth - parentBorderLeft;
             let width = blackoutDiv.childNodes[0].offsetWidth - chart.borderDivWidth * 2;
 
