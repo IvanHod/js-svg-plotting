@@ -1,16 +1,14 @@
 import {ColorGenerator} from "./tools/colorgenerator";
 import {createPolyline, createSvgElement, createTransform} from "./tools/svg";
-import {getMaxOfArray, getMinOfArray} from "./tools/queries";
+import {getMaxOfArray, getMinOfArray, query} from "./tools/queries";
 import {XAxis} from "./axis/xaxis";
 import {YAxis} from "./axis/yaxis";
-import $ from 'jquery';
-import moment from 'moment'
 
 export class ChartMain {
     constructor(el, data) {
         this.el = el;
         this.x = data.columns[0].slice(1);
-        this.width = el.width();
+        this.width = el.offsetWidth;
         this.height = this.width / 2;
         this.format = 'MMM DD';
         this.paddingBottom = 40;
@@ -25,18 +23,18 @@ export class ChartMain {
         this.colorGenerator = new ColorGenerator();
         this.formData(data);
 
-        el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="chart-svg"></svg>');
-        let svg = el.find('svg');
+        this.svg = createSvgElement('svg', {'viewBox': '0 0 ' + this.width + ' ' + this.height, 'class': 'chart-svg'});
+        el.append(this.svg);
 
         this.g = createSvgElement('g', {'class': 'plot-lines'});
-        svg.append(this.g);
+        this.svg.append(this.g);
 
-        svg.on('mousemove', this.mouseMoving.bind(this));
-        svg.on('mouseover', this.mouseOver.bind(this));
-        svg.on('mouseleave', this.mouseLeave.bind(this));
+        this.svg.addEventListener('mousemove', this.mouseMoving.bind(this));
+        this.svg.addEventListener('mouseover', this.mouseOver.bind(this));
+        this.svg.addEventListener('mouseleave', this.mouseLeave.bind(this));
 
-        this.xaxis = new XAxis(svg, data.columns[0].slice(1));
-        this.yaxis = new YAxis(svg, this.data);
+        this.xaxis = new XAxis(this.svg, data.columns[0].slice(1), this.width, this.height);
+        this.yaxis = new YAxis(this.svg, this.data, this.width, this.height);
 
         this.drawLines(0, null, true);
 
@@ -45,7 +43,7 @@ export class ChartMain {
 
     createHelpWindow(data) {
         this.helpingGroup = createSvgElement('g',{'class': 'helping-group invisible'});
-        $(this.el).find('svg').append(this.helpingGroup);
+        this.svg.append(this.helpingGroup);
         let line = createSvgElement('line', {
             'class': 'vertical-line',
             'x1': 0, 'y1': this.height - this.paddingBottom / 2,
@@ -53,21 +51,21 @@ export class ChartMain {
             'fill': 'none', 'stroke': 'gray', 'stroke-width': '1'});
         this.helpingGroup.append(line);
 
-        let helpingBlock = $('<div>', {'class': 'helping-block hide'}).appendTo(this.el);
-        $('<div>', {'class': 'helping-date'}).appendTo(helpingBlock);
+        let helpingBlock = query('div', {'class': 'helping-block hide'}, this.el);
+        query('div', {'class': 'helping-date'}, helpingBlock);
 
-        let dataInfo = $('<div>', {'class': 'helping-data-info-block'}).appendTo(helpingBlock);
+        let dataInfo = query('div', {'class': 'helping-data-info-block'}, helpingBlock);
 
         for (let id in this.data) {
-            let detail = $('<div>', {
+            let detail = query('div', {
                 'id': 'helping-detail-' + id,
                 'class': 'helping-detail',
                 'css': {
                     'color': this.colors[id],
                 }
-            }).appendTo(dataInfo);
-            $('<div>', {'class': 'helping-detail-number'}).appendTo(detail);
-            $('<div>', {'class': 'helping-detail-name'}).text(data.names[id]).appendTo(detail);
+            }, dataInfo);
+            query('div', {'class': 'helping-detail-number'}, detail);
+            query('div', {'class': 'helping-detail-name'}, detail).innerText = data.names[id];
 
             let circle = createSvgElement('circle', {
                 'cx': 0, 'cy': 0, 'r': 3,
@@ -81,21 +79,26 @@ export class ChartMain {
     mouseMoving(e) {
         let pixel = e.offsetX;
         let index = this.getIndexByTimestamp(this.xaxis.getTimestampByPixel(pixel, this.minIndex, this.maxIndex));
-        $(this.helpingBlock).find('.helping-date').text(this.xaxis.getDateByIndex(index));
+        this.helpingBlock.getElementsByClassName('helping-date')[0].innerHTML = this.xaxis.getDateByIndex(index);
 
         for (let id in this.data) {
+            let detail = this.helpingBlock.querySelector('#helping-detail-' + id);
+            let circle = this.helpingGroup.getElementsByClassName('circle-label-' + id)[0];
             if (this.visible[id]) {
-                let detail = $(this.helpingBlock).find('#helping-detail-' + id);
+                detail.classList.remove('hide');
+                circle.classList.remove('invisible');
 
                 let value = this.data[id][index];
-                detail.children('.helping-detail-number').text(value);
+                detail.getElementsByClassName('helping-detail-number')[0].innerHTML = value;
 
                 let circleY = this.yaxis.getPixelByValue(value, this.min, this.max);
                 let circleX = this.xaxis.getPixelByTimestamp(this.x[index], this.minIndex, this.maxIndex);
 
-                let circle = this.helpingGroup.getElementsByClassName('circle-label-' + id)[0];
                 circle.setAttributeNS(null, 'cx', circleX);
                 circle.setAttributeNS(null, 'cy', circleY);
+            } else {
+                detail.classList.add('hide');
+                circle.classList.add('invisible');
             }
         }
 
@@ -113,13 +116,13 @@ export class ChartMain {
     }
 
     mouseOver() {
-        $(this.el).find('.helping-block').removeClass('hide');
+        this.el.getElementsByClassName('helping-block')[0].classList.remove('hide');
         this.helpingGroup.classList.remove('invisible')
     }
 
     mouseLeave(e) {
-        if (!$(e.relatedTarget).hasClass('helping-block')) {
-            $(this.el).find('.helping-block').addClass('hide');
+        if (!e.relatedTarget.classList.contains('helping-block')) {
+            this.el.getElementsByClassName('helping-block')[0].classList.add('hide');
             this.helpingGroup.classList.add('invisible');
         }
     }
@@ -183,7 +186,7 @@ export class ChartMain {
     }
 
     drawLine(id, start_index=0, end_index=null, animate=false) {
-        let polyline = $(this.g).find('>#chart-line-' + id)[0];
+        let polyline = this.g.querySelector('#chart-line-' + id);
 
         if (polyline && !this.visible[id]) {
             polyline.remove();

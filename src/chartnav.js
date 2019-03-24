@@ -1,12 +1,11 @@
 import {ColorGenerator} from './tools/colorgenerator';
 import {createSvgElement, createPolyline} from './tools/svg'
-import $ from 'jquery';
-import {getMaxOfArray, getMinOfArray} from "./tools/queries";
+import {getMaxOfArray, getMinOfArray, query} from "./tools/queries";
 
 export class ChartNavigation {
     constructor(el, x, data, minValue, maxValue) {
-        let blackout = $('<div>', {'class': 'navigation-blackout'}).appendTo(el);
-        $('<div>', {'class': 'navigation-border'}).appendTo(blackout);
+        let blackout = query('div', {'class': 'navigation-blackout'}, el);
+        let borderDiv = query('div', {'class': 'navigation-border'}, blackout);
 
         this.el = el;
         this.x = x;
@@ -14,17 +13,21 @@ export class ChartNavigation {
         this.maxValue = maxValue;
         this.left_index = 0;
         this.right_index = x.length - 1;
-        this.width = el.width();
+        this.width = el.offsetWidth;
         this.height = 90;
+        this.offsetX = el.parentNode.offsetLeft;
         this.left_border_dragging = false;
         this.right_border_dragging = false;
         this.window_is_moving = false;
         this.colorGenerator = new ColorGenerator();
+        this.borderDivWidth = parseFloat(getComputedStyle(borderDiv,null).getPropertyValue('border-left-width'));
         this.initEvents();
-        el.append('<svg viewBox="0 0 ' + this.width + ' ' + this.height +'" class="navigation"></svg>');
+
+        let svg = createSvgElement('svg', {'viewBox': '0 0 ' + this.width + ' ' + this.height, 'class': 'navigation'});
+        el.append(svg);
 
         this.g = createSvgElement('g', {'class': 'plot-navigation-lines'});
-        el.find('svg').append(this.g);
+        svg.append(this.g);
 
         this.drawLines(data);
 
@@ -34,55 +37,90 @@ export class ChartNavigation {
     }
 
     initEvents() {
-        let chart = this;
-        this.el.on('mousedown', '.navigation-border', function (e) {
+        let chart = this, blackoutDiv = this.el.getElementsByClassName('navigation-blackout')[0];
+
+        blackoutDiv.addEventListener('mousedown', function (e) {
+            let width = blackoutDiv.childNodes[0].offsetWidth - chart.borderDivWidth * 2;
+
             if (e.offsetX <= 0) {
                 chart.left_border_dragging = true;
-            } else if (e.offsetX > $(this).width()) {
+            } else if (e.offsetX > width) {
                 chart.right_border_dragging = true;
-            } else if (e.offsetX > 0 && e.offsetX < $(this).width()) {
+            } else if (e.offsetX > 0 && e.offsetX < width) {
                 chart.window_is_moving = e.offsetX;
             }
-        }).on('mouseup', '.navigation-border', function (e) {
+        });
+
+        blackoutDiv.addEventListener('mouseup', function (e) {
             chart.left_border_dragging = false;
             chart.right_border_dragging = false;
             chart.window_is_moving = false;
         });
 
-        this.el.on('mousemove', '.navigation-blackout', function (e) {
-            let offsetLeft = parseFloat($(this).css('border-left-width'));
-            let offsetRight = parseFloat($(this).css('border-right-width'));
-            let border = parseFloat($(this).children().css('border-left-width'));
-            let offsetX = e.pageX - 8;
-            if (chart.left_border_dragging && offsetX >= border / 2 && offsetX < chart.width - border * 1.5) {
-                $(this).children().css({'width': (chart.width - e.pageX + 8 - border * 1.5 - offsetRight) + 'px'});
-                $(this).css({'border-left-width': (offsetX - border / 2) + 'px'});
-                $(this).css({'width': (chart.width - e.pageX + 8 + border / 2 - offsetRight) + 'px'});
+        blackoutDiv.addEventListener('touchstart', function (e) {
+            let parentBorderLeft = parseFloat($(this.parentNode).css('border-left-width'));
+            let offsetX = e.touches[0].pageX - chart.offsetX - chart.borderDivWidth - parentBorderLeft;
+            let width = blackoutDiv.childNodes[0].offsetWidth - chart.borderDivWidth * 2;
 
-                chart.leftBorderWasMoved(offsetX - border / 2);
-            }
-            else if (chart.right_border_dragging && offsetX <= chart.width - border / 2) {
-                let frameWidth = e.pageX - border * 1.5 - offsetLeft - 8;
-                $(this).children().css({'width': frameWidth + 'px'});
-                $(this).css({'width': (frameWidth + border * 2) + 'px'});
-                $(this).css({'border-right-width': (chart.width - frameWidth - offsetLeft - border * 2) + 'px'});
-
-                chart.rightBorderWasMoved(offsetX + border / 2);
-            } else if (chart.window_is_moving) {
-                let maxWidth = chart.width - $(this).width(), borderWindowWidth = $(this.children[0]).width();
-
-                let borderLeft = Math.max(0, offsetX - chart.window_is_moving - border);
-                borderLeft = Math.min(borderLeft, maxWidth);
-                $(this).css({'border-left-width': borderLeft + 'px'});
-
-                let distanceToRightBorder = borderWindowWidth - chart.window_is_moving + border;
-                let borderRight = Math.max(0, chart.width - offsetX - distanceToRightBorder);
-                borderRight = Math.min(borderRight, maxWidth);
-                $(this).css({'border-right-width': borderRight + 'px'});
-
-                chart.windowWasMoved(borderLeft, borderLeft + borderWindowWidth + border * 2);
+            if (offsetX <= 0) {
+                chart.left_border_dragging = true;
+            } else if (offsetX > width) {
+                chart.right_border_dragging = true;
+            } else if (offsetX > 0 && offsetX < width) {
+                chart.window_is_moving = offsetX;
             }
         });
+
+        blackoutDiv.addEventListener('touchend', function (e) {
+            chart.left_border_dragging = false;
+            chart.right_border_dragging = false;
+            chart.window_is_moving = false;
+        });
+
+        blackoutDiv.addEventListener('mousemove', function (e) {
+            chart.move(e, this);
+        });
+
+        blackoutDiv.addEventListener('touchmove', function (e) {
+            chart.move(e.touches[0], this);
+        })
+    }
+
+    move(e, el) {
+        let chart = this, child = el.childNodes[0];
+        let offsetLeft = parseFloat(getComputedStyle(el, null).getPropertyValue('border-left-width'));
+        let offsetRight = parseFloat(getComputedStyle(el, null).getPropertyValue('border-right-width'));
+        let border = this.borderDivWidth;
+
+        let offsetX = e.pageX - 8;
+
+        if (chart.left_border_dragging && offsetX >= border / 2 && offsetX < chart.width - border * 1.5) {
+            child.style.width = (chart.width - e.pageX + 8 - border * 1.5 - offsetRight) + 'px';
+            el.style.borderLeftWidth = (offsetX - border / 2) + 'px';
+            el.style.width = (chart.width - e.pageX + 8 + border / 2 - offsetRight) + 'px';
+
+            chart.leftBorderWasMoved(offsetX - border / 2);
+        }
+        else if (chart.right_border_dragging && offsetX <= chart.width - border / 2) {
+            let frameWidth = e.pageX - border * 1.5 - offsetLeft - 8;
+            child.style.width = frameWidth + 'px';
+            el.style.width = (frameWidth + border * 2) + 'px';
+            el.style.borderRightWidth = (chart.width - frameWidth - offsetLeft - border * 2) + 'px';
+
+            chart.rightBorderWasMoved(offsetX + border / 2);
+        } else if (chart.window_is_moving) {
+            let maxWidth = chart.width - (el.offsetWidth - offsetLeft - offsetRight);
+            let borderWindowWidth = child.offsetWidth - border * 2;
+
+            let borderLeft = Math.min(maxWidth, Math.max(0, offsetX - chart.window_is_moving - border));
+            el.style.borderLeftWidth = borderLeft + 'px';
+
+            let distanceToRightBorder = borderWindowWidth - chart.window_is_moving + border;
+            let borderRight = Math.min(maxWidth, Math.max(0, chart.width - offsetX - distanceToRightBorder));
+            el.style.borderRightWidth = borderRight + 'px';
+
+            chart.windowWasMoved(borderLeft, borderLeft + borderWindowWidth + border * 2);
+        }
     }
 
     leftBorderWasMoved(pixel) {
@@ -181,7 +219,7 @@ export class ChartNavigation {
             points += navigator.transform_date(navigator.x[i]) + ',' + navigator.transform_value(y[i]) + ' ';
         });
 
-        createPolyline(this.g, {'points': points, 'fill': 'none', 'stroke': color, 'stroke-width': '1', 'id': 'nav-line-' + id});
+        createPolyline(this.g, {'points': points, 'fill': 'none', 'stroke': color, 'stroke-width': '2', 'id': 'nav-line-' + id});
     }
 
     changeVisible(lineId, isVisible) {

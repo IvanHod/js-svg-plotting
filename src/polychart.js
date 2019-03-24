@@ -1,16 +1,16 @@
-import $ from 'jquery'
 import {ChartMain} from "./chartmain";
 import {ChartNavigation} from "./chartnav";
+import {query} from "./tools/queries";
 
 export class Polychart {
     constructor(el, width, data) {
-        el.css({'width': width});
+        el.style.width = width + 'px';
         this.el = el;
 
-        let mainBlock = $('<div>', {'class': 'chart-main'}).appendTo(el);
+        let mainBlock = query('div', {'class': 'chart-main'}, el);
         this.chart = new ChartMain(mainBlock, data);
 
-        let navigationBlock = $('<div>', {'class': 'chart-navigation'}).appendTo(el);
+        let navigationBlock = query('div', {'class': 'chart-navigation'}, el);
         this.navigation = new ChartNavigation(navigationBlock,
             this.chart.x, data,
             this.chart.min, this.chart.max);
@@ -22,42 +22,44 @@ export class Polychart {
         this.onRightBorderWasMoved(this.chart, this.chart.moveRight);
         this.onWindowWasMoved(this.chart, this.chart.moveWindow);
 
-        this.createLabels(data, $('<div>', {'class': 'chart-labels'}).appendTo(el));
+        this.createLabels(data, query('div', {'class': 'chart-labels'}, el));
 
         this.onCheckboxWasChanged(this.chart, this.chart.changeVisible);
         this.onCheckboxWasChanged(this.navigation, this.navigation.changeVisible);
 
-        let switchDiv = $('<div>', {'class': 'switch-block'}).appendTo(el);
-        let switchBtn = $('<button>', {'class': 'switch-mode'}).text('Switch to night mode').appendTo(switchDiv);
+        let switchDiv = query('div', {'class': 'switch-block'}, el);
+        let switchBtn = query('button', {'class': 'switch-mode'}, switchDiv);
+        switchBtn.innerText = 'Switch to night mode';
 
-        switchBtn.click(function (e) {
-            $('body').toggleClass('dark');
+        switchBtn.addEventListener('click', function (e) {
+            document.getElementsByTagName('body')[0].classList.toggle('dark');
         });
     }
 
     createLabels(data, el) {
         let chart = this;
         for (let name in data.names) {
-            let parentDiv = $('<div>', {'class': 'checkbox-block'}).appendTo(el);
-            let roundDiv = $('<div>', {'class': 'round'}).appendTo(parentDiv);
-            let input = $('<input>', {
+            let parentDiv = query('div', {'class': 'checkbox-block'}, el);
+            let roundDiv = query('div', {'class': 'round'}, parentDiv);
+            let input = query('input', {
                 'type': 'checkbox',
                 'checked': 'checked',
                 'value': name,
                 'id': 'checkbox-' + name
-            }).appendTo(roundDiv);
+            }, roundDiv);
 
-            $('<label>', {
+            query('label', {
                 'class': 'checkbox-container',
                 'for': 'checkbox-' + name,
                 'css': {
-                    'backgroundColor': data.colors[name],
-                    'borderColor': data.colors[name]
+                    'background-color': data.colors[name],
+                    'border-color': data.colors[name]
                 }
-            }).appendTo(roundDiv);
-            $('<label>', {'class': 'checkbox-label', 'for': 'checkbox-' + name}).text(data.names[name]).appendTo(parentDiv);
+            }, roundDiv);
+            let label = query('label', {'class': 'checkbox-label', 'for': 'checkbox-' + name}, parentDiv);
+            label.innerText = data.names[name];
 
-            input.change(function (e) {
+            input.addEventListener('change', function (e) {
                 let id = e.target.id.replace('checkbox-', '');
 
                 chart.eventsCheckboxWasChanged.forEach(function (func) {

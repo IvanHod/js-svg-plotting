@@ -2,8 +2,8 @@ import {getMinOfArray, getMaxOfArray} from "../tools/queries";
 import {Axis} from "./axis";
 
 export class YAxis extends Axis {
-    constructor(svg, y, color='gray') {
-        super(svg, y, color);
+    constructor(svg, y, width, height, color='gray') {
+        super(svg, y, width, height, color);
 
         this.visible = {};
         for (let id in y) {

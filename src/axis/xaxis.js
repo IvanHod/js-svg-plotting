@@ -4,13 +4,16 @@ import $ from 'jquery';
 import moment from 'moment';
 
 export class XAxis extends Axis {
-    constructor(svg, x, color='gray') {
-        super(svg, x, color);
+    constructor(svg, x, width, height, color='gray') {
+        super(svg, x, width, height, color);
 
         this.format = 'MMM DD';
         this.level = 1;
         this.left_offset = 0;
         this.right_offset = 0;
+
+        this.g = createSvgElement('g', {'class': 'xaxis'});
+        this.svg.append(this.g);
 
         this.draw();
     }
@@ -26,6 +29,7 @@ export class XAxis extends Axis {
         let minVal = this.data[start_index], maxVal = this.data[end_index];
 
         let percentile = (pixel - 0) / (this.width - 0);
+
         return Math.round(minVal + (maxVal - minVal) * percentile);
     }
 
@@ -61,15 +65,10 @@ export class XAxis extends Axis {
         let numberWords = Math.ceil(((lastPos - startPos) / widthOfWord) / 2);
         let padding = (lastPos - startPos - widthOfWord * numberWords) / (numberWords - 1);
 
-        let group = createSvgElement('g', {'class': 'xaxis'});
-        this.svg.append(group);
-
-        console.log(lastPos, widthOfWord);
         let y = this.height - 3;
         for (let i = 0; i < numberWords; i++) {
-            console.log(startPos, startPos + widthOfWord + padding);
             let date = this.getDateByPixel(startPos + widthOfWord / 2);
-            this.appendLabel(startPos, y, group, date, {'class': 'level-0'});
+            this.appendLabel(startPos, y, this.g, date, {'class': 'level-0'});
             startPos += widthOfWord + padding;
         }
     }
@@ -88,7 +87,8 @@ export class XAxis extends Axis {
     redraw(start_index, end_index) {
         let axis = this, padding = this.widthOfLetter * this.format.length;
 
-        let points = $(this.svg).find('polyline')[0].getAttributeNS(null, 'points').split(' ').slice(0, 2);
+        let points = this.svg.getElementsByTagName('polyline')[0]
+            .getAttributeNS(null, 'points').split(' ').slice(0, 2);
 
         let delta = parseFloat(points[1].split(',')[0]) - parseFloat(points[0].split(',')[0]);
         let leftWidth = delta * end_index;
@@ -131,9 +131,8 @@ export class XAxis extends Axis {
     }
 
     appendNextLevel(opacity) {
-        let g = $(this.svg).find('g.xaxis'), widthOfWord = this.widthOfLetter * this.format.length;
-        let labels = $(this.svg).find('g.xaxis .level-' + this.level);
-        let height = this.height - 3;
+        let widthOfWord = this.widthOfLetter * this.format.length, height = this.height - 3;
+        let labels = this.g.getElementsByClassName('level-' + this.level);
         if (!labels.length) {
             let prevLabels = $(this.svg).find('g.xaxis text');
             let n = prevLabels.length - 1;
@@ -143,11 +142,13 @@ export class XAxis extends Axis {
 
                 let newStartPos = currentEndPos + (nextStartPos - currentEndPos - widthOfWord) / 2;
                 let date = this.getDateByPixel(newStartPos + (widthOfWord / 2));
-                let text = this.appendLabel(newStartPos, height, g, date, {
+                let text = this.appendLabel(newStartPos, height, this.g, date, {
                     'class': 'level-' + this.level,
-                    'opacity': opacity}, prevLabels[i]);
+                    'opacity': opacity
+                }, prevLabels[i]);
 
-                text.setAttributeNS(null, 'x', currentEndPos + (nextStartPos - currentEndPos - text.getBBox().width) / 2);
+                newStartPos = currentEndPos + (nextStartPos - currentEndPos - text.getBBox().width) / 2;
+                text.setAttributeNS(null, 'x', newStartPos);
                 text.innerHTML = this.getDateByPixel(newStartPos + (text.getBBox().width / 2));
             }
         }

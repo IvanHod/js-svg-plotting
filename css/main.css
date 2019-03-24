@@ -41,6 +41,10 @@ div.polychart div.helping-block.hide {
     display: none;
 }
 
+div.polychart div.helping-detail.hide {
+    display: none;
+}
+
 div.polychart div.helping-block div {
     width: auto;
 }
@@ -138,7 +142,7 @@ div.polychart div.round input[type="checkbox"]:checked + label:after {
     opacity: 1;
 }
 
-div.polychart polyline.invisible, div.polychart g.invisible {
+div.polychart polyline.invisible, div.polychart g.invisible, div.polychart circle.invisible {
     visibility: hidden;
 }
 
