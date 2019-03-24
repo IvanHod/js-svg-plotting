@@ -121,7 +121,7 @@ export class ChartMain {
     }
 
     mouseLeave(e) {
-        if (!e.relatedTarget.classList.contains('helping-block')) {
+        if (e.relatedTarget && !e.relatedTarget.classList.contains('helping-block')) {
             this.el.getElementsByClassName('helping-block')[0].classList.add('hide');
             this.helpingGroup.classList.add('invisible');
         }
@@ -246,21 +246,21 @@ export class ChartMain {
         this.drawLines(start_index, end_index);
 
         this.xaxis.redraw(start_index, end_index);
-        this.yaxis.redraw();
+        this.yaxis.redraw(this.min, this.max);
     }
 
     moveRight(start_index, end_index) {
         this.drawLines(start_index, end_index);
 
         this.xaxis.redraw(start_index, end_index);
-        this.yaxis.redraw();
+        this.yaxis.redraw(this.min, this.max);
     }
 
     moveWindow(start_index, end_index) {
         this.drawLines(start_index, end_index);
 
         this.xaxis.redraw(start_index, end_index);
-        this.yaxis.redraw();
+        this.yaxis.redraw(this.min, this.max);
     }
 
     changeVisible(lineId, isVisible) {

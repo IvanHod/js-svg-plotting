@@ -219,7 +219,13 @@ export class ChartNavigation {
             points += navigator.transform_date(navigator.x[i]) + ',' + navigator.transform_value(y[i]) + ' ';
         });
 
-        createPolyline(this.g, {'points': points, 'fill': 'none', 'stroke': color, 'stroke-width': '2', 'id': 'nav-line-' + id});
+        createPolyline(this.g, {
+            'points': points,
+            'fill': 'none',
+            'stroke': color,
+            'stroke-width': '2',
+            'id': 'nav-line-' + id
+        });
     }
 
     changeVisible(lineId, isVisible) {

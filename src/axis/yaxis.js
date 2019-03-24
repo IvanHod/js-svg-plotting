@@ -1,5 +1,6 @@
 import {getMinOfArray, getMaxOfArray} from "../tools/queries";
 import {Axis} from "./axis";
+import {createSvgElement} from "../tools/svg";
 
 export class YAxis extends Axis {
     constructor(svg, y, width, height, color='gray') {
@@ -34,7 +35,7 @@ export class YAxis extends Axis {
         return isChange
     }
 
-    getValue(pixel, id) {
+    getValue(pixel) {
         let invertPixel = this.height - this.paddingBottom - pixel;
         let percentile = invertPixel / (this.height - this.paddingBottom);
         return Math.round(this.min + (this.max - this.min) * percentile);
@@ -50,20 +51,29 @@ export class YAxis extends Axis {
     draw() {
         this.detectMinMax();
         let height = this.height - this.paddingBottom / 2;
-        let numberOfLabels = 4;
+        let numberOfLabels = 5;
         let padding = (height - numberOfLabels * this.heightOfLetter) / (numberOfLabels - 1);
         let startPos = height;
 
-        let group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        this.group = createSvgElement('g');
+        this.svg.append(this.group);
+
         for (let i = 0; i < numberOfLabels; i++) {
             this.drawHorizontalLine(0, startPos, this.width, startPos);
-            this.appendLabel(10, startPos - 10, group, this.getValue(startPos));
+            this.appendLabel(10, startPos - 10, this.group, this.getValue(startPos));
             startPos -= this.heightOfLetter + padding;
         }
-        this.svg.append(group);
     }
 
-    redraw() {
-
+    redraw(min, max) {
+        if (this.min !== min || this.max !== max) {
+            this.min = min;
+            this.max = max;
+            let textNodes = this.group.getElementsByTagName('text');
+            for (let i = 0; i < textNodes.length; i++) {
+                let pos = parseFloat(textNodes[i].getAttributeNS(null, 'y'));
+                textNodes[i].innerHTML = this.getValue(pos);
+            }
+        }
     }
 }
