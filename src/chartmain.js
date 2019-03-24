@@ -5,7 +5,8 @@ import {XAxis} from "./axis/xaxis";
 import {YAxis} from "./axis/yaxis";
 
 export class ChartMain {
-    constructor(el, data) {
+    constructor(el, chartId, data) {
+        this.id = chartId;
         this.el = el;
         this.x = data.columns[0].slice(1);
         this.width = el.offsetWidth;
@@ -59,7 +60,7 @@ export class ChartMain {
         let fillColor = getComputedStyle(this.el).backgroundColor;
         for (let id in this.data) {
             let detail = query('div', {
-                'id': 'helping-detail-' + id,
+                'id': this.id + '-helping-detail-' + id,
                 'class': 'helping-detail',
                 'css': {
                     'color': this.colors[id],
@@ -84,7 +85,7 @@ export class ChartMain {
 
         let fillColor = getComputedStyle(this.el).backgroundColor;
         for (let id in this.data) {
-            let detail = this.helpingBlock.querySelector('#helping-detail-' + id);
+            let detail = this.helpingBlock.querySelector('#' + this.id + '-helping-detail-' + id);
             let circle = this.helpingGroup.getElementsByClassName('circle-label-' + id)[0];
             if (this.visible[id]) {
                 detail.classList.remove('hide');
@@ -181,7 +182,7 @@ export class ChartMain {
     }
 
     drawLine(id, start_index=0, end_index=null, animate=false) {
-        let polyline = this.g.querySelector('#chart-line-' + id);
+        let polyline = this.g.querySelector('#' + this.id + '-chart-line-' + id);
 
         if (polyline && !this.visible[id]) {
             polyline.remove();
@@ -199,7 +200,7 @@ export class ChartMain {
                 createPolyline(this.g, {
                     'points': newPoints,
                     'fill': 'none',
-                    'id': 'chart-line-' + id,
+                    'id': this.id + '-chart-line-' + id,
                     'stroke-width': '2', 'stroke': this.colors[id]});
             } else {
                 if (!animate) {

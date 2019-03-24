@@ -2,16 +2,25 @@ import {ChartMain} from "./chartmain";
 import {ChartNavigation} from "./chartnav";
 import {query} from "./tools/queries";
 
+function idGenerator() {
+    if( typeof idGenerator.counter == 'undefined' ) {
+        idGenerator.counter = 0;
+    }
+    idGenerator.counter++;
+    return idGenerator.counter
+}
+
 export class Polychart {
     constructor(el, width, data) {
+        this.id = 'polychart-' + idGenerator();
         el.style.width = width + 'px';
         this.el = el;
 
         let mainBlock = query('div', {'class': 'chart-main'}, el);
-        this.chart = new ChartMain(mainBlock, data);
+        this.chart = new ChartMain(mainBlock, this.id, data);
 
         let navigationBlock = query('div', {'class': 'chart-navigation'}, el);
-        this.navigation = new ChartNavigation(navigationBlock,
+        this.navigation = new ChartNavigation(navigationBlock, this.id,
             this.chart.x, data,
             this.chart.min, this.chart.max);
 
@@ -46,22 +55,25 @@ export class Polychart {
                 'type': 'checkbox',
                 'checked': 'checked',
                 'value': name,
-                'id': 'checkbox-' + name
+                'id': this.id + '-checkbox-' + name
             }, roundDiv);
 
             query('label', {
                 'class': 'checkbox-container',
-                'for': 'checkbox-' + name,
+                'for': this.id + '-checkbox-' + name,
                 'css': {
                     'background-color': data.colors[name],
                     'border-color': data.colors[name]
                 }
             }, roundDiv);
-            let label = query('label', {'class': 'checkbox-label', 'for': 'checkbox-' + name}, parentDiv);
+            let label = query('label', {
+                'class': 'checkbox-label',
+                'for': this.id + '-checkbox-' + name
+            }, parentDiv);
             label.innerText = data.names[name];
 
             input.addEventListener('change', function (e) {
-                let id = e.target.id.replace('checkbox-', '');
+                let id = e.target.id.replace(chart.id + '-checkbox-', '');
 
                 chart.eventsCheckboxWasChanged.forEach(function (func) {
                     func(id, e.target.checked);

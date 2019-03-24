@@ -3,7 +3,9 @@ import {createSvgElement, createPolyline} from './tools/svg'
 import {getMaxOfArray, getMinOfArray, query} from "./tools/queries";
 
 export class ChartNavigation {
-    constructor(el, x, data, minValue, maxValue) {
+    constructor(el, chartId, x, data, minValue, maxValue) {
+        this.id = chartId;
+
         let blackout = query('div', {'class': 'navigation-blackout'}, el);
         let borderDiv = query('div', {'class': 'navigation-border'}, blackout);
 
@@ -205,7 +207,7 @@ export class ChartNavigation {
     }
 
     updateLine(id) {
-        let polyline = this.g.querySelector('#nav-line-'+ id);
+        let polyline = this.g.querySelector('#' + this.id + '-nav-line-'+ id);
         polyline.classList.remove("invisible");
         if (!this.visible[id]) {
             polyline.classList.add("invisible");
@@ -228,7 +230,7 @@ export class ChartNavigation {
             'fill': 'none',
             'stroke': color,
             'stroke-width': '2',
-            'id': 'nav-line-' + id
+            'id': this.id + '-nav-line-' + id
         });
     }
 
