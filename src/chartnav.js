@@ -101,19 +101,25 @@ export class ChartNavigation {
         let offsetX = e.pageX - 8;
 
         if (chart.left_border_dragging && offsetX >= border / 2 && offsetX < chart.width - border * 1.5) {
-            child.style.width = (chart.width - e.pageX + 8 - border * 1.5 - offsetRight) + 'px';
-            el.style.borderLeftWidth = (offsetX - border / 2) + 'px';
-            el.style.width = (chart.width - e.pageX + 8 + border / 2 - offsetRight) + 'px';
+            let childWidth = Math.max(0, chart.width - e.pageX + 8 - border * 1.5 - offsetRight);
+            child.style.width = childWidth + 'px';
 
-            chart.leftBorderWasMoved(offsetX - border / 2);
+            el.style.width = (childWidth + border * 2) + 'px';
+
+            let borderLeftWidth = chart.width - childWidth - offsetRight - border * 2;
+            el.style.borderLeftWidth = (borderLeftWidth) + 'px';
+
+            chart.leftBorderWasMoved(borderLeftWidth);
         }
         else if (chart.right_border_dragging && offsetX <= chart.width - border / 2) {
-            let frameWidth = e.pageX - border * 1.5 - offsetLeft - 8;
+            let frameWidth = Math.max(0, e.pageX - border * 1.5 - offsetLeft - 8);
             child.style.width = frameWidth + 'px';
             el.style.width = (frameWidth + border * 2) + 'px';
-            el.style.borderRightWidth = (chart.width - frameWidth - offsetLeft - border * 2) + 'px';
 
-            chart.rightBorderWasMoved(offsetX + border / 2);
+            let borderRightWidth = chart.width - frameWidth - offsetLeft - border * 2;
+            el.style.borderRightWidth = borderRightWidth + 'px';
+
+            chart.rightBorderWasMoved(chart.width - borderRightWidth);
         } else if (chart.window_is_moving) {
             let maxWidth = chart.width - (el.offsetWidth - offsetLeft - offsetRight);
             let borderWindowWidth = child.offsetWidth - border * 2;
