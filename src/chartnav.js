@@ -5,9 +5,15 @@ import {getMaxOfArray, getMinOfArray, query} from "./tools/queries";
 export class ChartNavigation {
     constructor(el, chartId, x, data, minValue, maxValue) {
         this.id = chartId;
+        this.width = el.offsetWidth;
+        this.height = 90;
+        this.borderDivWidth = parseFloat(getComputedStyle(borderDiv,null).getPropertyValue('border-left-width'));
 
         let blackout = query('div', {'class': 'navigation-blackout'}, el);
-        let borderDiv = query('div', {'class': 'navigation-border'}, blackout);
+        let borderDiv = query('div', {
+            'class': 'navigation-border',
+            'css': {'width': (this.width - this.borderDivWidth * 2) + 'px'}
+            }, blackout);
 
         this.el = el;
         this.x = x;
@@ -15,14 +21,11 @@ export class ChartNavigation {
         this.maxValue = maxValue;
         this.left_index = 0;
         this.right_index = x.length - 1;
-        this.width = el.offsetWidth;
-        this.height = 90;
         this.offsetX = el.parentNode.offsetLeft;
         this.left_border_dragging = false;
         this.right_border_dragging = false;
         this.window_is_moving = false;
         this.colorGenerator = new ColorGenerator();
-        this.borderDivWidth = parseFloat(getComputedStyle(borderDiv,null).getPropertyValue('border-left-width'));
         this.initEvents();
 
         let svg = createSvgElement('svg', {'viewBox': '0 0 ' + this.width + ' ' + this.height, 'class': 'navigation'});
