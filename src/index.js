@@ -1,6 +1,6 @@
-import {Polychart} from './src/polychart';
-import json from './chart_data.json'
-import {query} from "./src/tools/queries";
+import {Polychart} from './polychart';
+import json from './chart_data.json';
+import {query} from "./tools/queries";
 
 let charts = document.getElementById('charts');
 
