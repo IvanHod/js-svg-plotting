@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Charts</title>
+
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<h1>Charts</h1>
+
+<div id="charts"></div>
+
+<script src="dist/polychart.js"></script>
+<script>
+    let charts = document.getElementById('charts');
+    console.log(query('#charts'));
+
+    json.forEach(function (data, i) {
+        if (i === 0) {
+            let chartBlock = query('div', {'id': 'chart', 'class': 'polychart'});
+            charts.append(chartBlock);
+
+            new Polychart(chartBlock, 600, data);
+        }
+    });
+</script>
+</body>
+</html>

@@ -42,12 +42,16 @@ export class ChartNavigation {
         blackoutDiv.addEventListener('mousedown', function (e) {
             let width = blackoutDiv.childNodes[0].offsetWidth - chart.borderDivWidth * 2;
 
-            if (e.offsetX <= 0) {
+            let target = e.target || e.srcElement,
+                rect = target.getBoundingClientRect(),
+                offsetX = e.clientX - rect.left;
+
+            if (offsetX <= chart.borderDivWidth) {
                 chart.left_border_dragging = true;
-            } else if (e.offsetX > width) {
+            } else if (offsetX > width) {
                 chart.right_border_dragging = true;
-            } else if (e.offsetX > 0 && e.offsetX < width) {
-                chart.window_is_moving = e.offsetX;
+            } else if (offsetX > 0 && offsetX < width) {
+                chart.window_is_moving = offsetX - chart.borderDivWidth;
             }
         });
 

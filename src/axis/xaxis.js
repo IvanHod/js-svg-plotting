@@ -1,10 +1,10 @@
 import {createSvgElement} from "../tools/svg";
 import {Axis} from "./axis";
 
-var monthNames = [
+let monthNames = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ];
-var daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+let daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function moment(time, format) {
     let date = new Date(time), res = format;
